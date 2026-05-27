@@ -346,15 +346,15 @@ export default function TelaPerfil() {
       <View style={styles.cartaoDados}>
         <View style={styles.boxSaldo}>
           <Text style={styles.label}>Saldo simulado</Text>
-          <Text style={styles.textoSaldo}>Balance: R$ {Number(carteira.walletBalance || 0).toFixed(2)}</Text>
+          <Text style={styles.textoSaldo}>Balanço: R$ {Number(carteira.walletBalance || 0).toFixed(2)}</Text>
           <Text style={styles.textoSaldoAux}>Reservado: R$ {Number(carteira.walletReserved || 0).toFixed(2)}</Text>
-          <Text style={styles.textoSaldoAux}>Disponivel: R$ {Number(carteira.walletAvailable || 0).toFixed(2)}</Text>
+          <Text style={styles.textoSaldoAux}>Disponível: R$ {Number(carteira.walletAvailable || 0).toFixed(2)}</Text>
 
           <TextInput
             value={depositoValor}
             onChangeText={setDepositoValor}
             style={styles.input}
-            placeholder="Valor para deposito"
+            placeholder="Valor para depósito"
             keyboardType="decimal-pad"
           />
 

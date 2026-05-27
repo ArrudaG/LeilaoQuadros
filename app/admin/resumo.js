@@ -64,13 +64,13 @@ export default function AdminResumoScreen() {
       refreshControl={<RefreshControl refreshing={carregando} onRefresh={carregar} />}
     >
       <View style={styles.hero}>
-        <Text style={styles.titulo}>Admin Leiloes</Text>
-        <Text style={styles.subtitulo}>Uma tela de controle rapido para acompanhar operacao e acionar fluxos.</Text>
+        <Text style={styles.titulo}>Admin Leilões</Text>
+        <Text style={styles.subtitulo}>Uma tela de controle rápida para acompanhar operação e acionar fluxos.</Text>
       </View>
 
       <View style={styles.kpiRow}>
         <View style={styles.kpiCard}>
-          <Text style={styles.kpiLabel}>Leiloes</Text>
+          <Text style={styles.kpiLabel}>Leilões</Text>
           <Text style={styles.kpiValue}>{metricas.leiloes}</Text>
         </View>
         <View style={styles.kpiCard}>
@@ -101,7 +101,7 @@ export default function AdminResumoScreen() {
         <Text style={styles.cardTitulo}>Atalhos</Text>
         <View style={styles.atalhosRow}>
           <Pressable style={styles.atalho} onPress={() => router.push('/admin/leiloes')}>
-            <Text style={styles.atalhoTexto}>Gerenciar leiloes</Text>
+            <Text style={styles.atalhoTexto}>Gerenciar leilões</Text>
           </Pressable>
           <Pressable style={styles.atalho} onPress={() => router.push('/admin/resgates')}>
             <Text style={styles.atalhoTexto}>Fluxo de resgates</Text>

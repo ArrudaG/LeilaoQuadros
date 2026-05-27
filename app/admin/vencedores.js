@@ -66,7 +66,7 @@ export default function AdminVencedoresScreen() {
             </View>
           );
         })}
-        {!vencedores.length ? <Text style={styles.vazio}>Nenhum leilao encerrado ainda.</Text> : null}
+        {!vencedores.length ? <Text style={styles.vazio}>Nenhum leilão encerrado ainda.</Text> : null}
       </View>
     </ScrollView>
   );

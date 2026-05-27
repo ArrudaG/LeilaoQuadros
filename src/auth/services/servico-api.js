@@ -18,7 +18,7 @@ function extrairMensagemErroApi(dados) {
     return 'Erro na requisição';
   }
 
-  if (dados?.message !== 'Dados inválidos.' || !dados?.errors) {
+  if (dados?.message !== 'Dados inválidos.' && !dados?.errors) {
     return dados?.message || 'Erro na requisição';
   }
 

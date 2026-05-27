@@ -217,7 +217,7 @@ export default function TelaCadastro() {
           label="CPF"
           value={cpf}
           onChangeText={setCpf}
-          placeholder="Somente numeros"
+          placeholder="Somente números"
           keyboardType="number-pad"
         />
 

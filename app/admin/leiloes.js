@@ -265,10 +265,10 @@ export default function AdminLeiloesScreen() {
       refreshControl={<RefreshControl refreshing={carregando} onRefresh={carregar} />}
     >
       <View style={styles.card}>
-        <Text style={styles.subtitulo}>{form.id ? 'Editar leilao' : 'Novo leilao'}</Text>
+        <Text style={styles.subtitulo}>{form.id ? 'Editar leilão' : 'Novo leilão'}</Text>
 
-        <TextInput style={styles.input} placeholder="Titulo do leilao" value={form.title} onChangeText={(v) => setForm((s) => ({ ...s, title: v }))} />
-        <TextInput style={[styles.input, styles.inputMultiline]} placeholder="Descricao" multiline value={form.description} onChangeText={(v) => setForm((s) => ({ ...s, description: v }))} />
+        <TextInput style={styles.input} placeholder="Titulo do leilão" value={form.title} onChangeText={(v) => setForm((s) => ({ ...s, title: v }))} />
+        <TextInput style={[styles.input, styles.inputMultiline]} placeholder="Descrição" multiline value={form.description} onChangeText={(v) => setForm((s) => ({ ...s, description: v }))} />
 
         <Text style={styles.label}>Status inicial</Text>
         <View style={styles.chipsLinha}>
@@ -283,7 +283,7 @@ export default function AdminLeiloesScreen() {
           ))}
         </View>
 
-        <Text style={styles.label}>Duracao (timer)</Text>
+        <Text style={styles.label}>Duração (timer)</Text>
         <View style={styles.chipsLinha}>
           {duracoesPadrao.map((minutos) => (
             <Pressable
@@ -312,7 +312,7 @@ export default function AdminLeiloesScreen() {
           </View>
 
           <View style={styles.campoMetade}>
-            <Text style={styles.label}>Incremento minimo</Text>
+            <Text style={styles.label}>Incremento mínimo</Text>
             <TextInput
               style={styles.input}
               placeholder="10"
@@ -324,40 +324,40 @@ export default function AdminLeiloesScreen() {
         </View>
 
         <View style={styles.linhaTempoInfo}>
-          <Text style={styles.infoTempo}>Inicio: {formatarDataHora(form.startsAt)}</Text>
+          <Text style={styles.infoTempo}>Início: {formatarDataHora(form.startsAt)}</Text>
           <Text style={styles.infoTempo}>Fim: {formatarDataHora(form.endsAt)}</Text>
         </View>
 
         <View style={styles.mediaBox}>
-          <Text style={styles.label}>Midia do leilao</Text>
+          <Text style={styles.label}>Mídia do leilão</Text>
           {form.mediaUrl ? <Image source={{ uri: montarUrlImagem(form.mediaUrl) }} style={styles.previewMidia} /> : null}
 
           <View style={styles.mediaAcoes}>
             <Pressable style={styles.botaoMidia} onPress={selecionarMidiaGaleria} disabled={enviandoMidia || carregando}>
-              <Text style={styles.textoBotao}>{enviandoMidia ? 'Enviando midia...' : 'Selecionar da galeria'}</Text>
+              <Text style={styles.textoBotao}>{enviandoMidia ? 'Enviando mídia...' : 'Selecionar da galeria'}</Text>
             </Pressable>
 
             {form.mediaUrl ? (
               <Pressable style={styles.botaoSecundario} onPress={() => setForm((s) => ({ ...s, mediaUrl: '' }))}>
-                <Text style={styles.textoBotaoSecundario}>Remover midia</Text>
+                <Text style={styles.textoBotaoSecundario}>Remover mídia</Text>
               </Pressable>
             ) : null}
           </View>
         </View>
 
         <Pressable style={styles.botaoPrimario} onPress={salvarLeilao} disabled={carregando}>
-          <Text style={styles.textoBotao}>{carregando ? 'Salvando...' : form.id ? 'Atualizar Leilao' : 'Criar Leilao'}</Text>
+          <Text style={styles.textoBotao}>{carregando ? 'Salvando...' : form.id ? 'Atualizar Leilão' : 'Criar Leilão'}</Text>
         </Pressable>
 
         {form.id ? (
           <Pressable style={styles.botaoSecundario} onPress={() => setForm(formularioVazio)}>
-            <Text style={styles.textoBotaoSecundario}>Cancelar edicao</Text>
+            <Text style={styles.textoBotaoSecundario}>Cancelar edição</Text>
           </Pressable>
         ) : null}
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.subtitulo}>Leiloes cadastrados</Text>
+        <Text style={styles.subtitulo}>Leilões cadastrados</Text>
         {leiloes.map((item) => (
           <View key={item.id} style={styles.itemLinha}>
             <Text style={styles.itemTitulo}>{item.title}</Text>
@@ -367,7 +367,7 @@ export default function AdminLeiloesScreen() {
               <Text style={styles.tag}>Lances: {item.bidsCount}</Text>
             </View>
             <Text style={styles.itemInfo}>Atual: R$ {formatarMoney(item.currentBid)} | Incremento: R$ {formatarMoney(item.minIncrement)}</Text>
-            <Text style={styles.itemInfo}>Inicio: {formatarDataHora(item.startsAt)}</Text>
+            <Text style={styles.itemInfo}>Início: {formatarDataHora(item.startsAt)}</Text>
             <Text style={styles.itemInfo}>Fim: {formatarDataHora(item.endsAt)}</Text>
             <View style={styles.linhaAcoes}>
               <Pressable style={styles.acaoEditar} onPress={() => editarLeilao(item)}><Text style={styles.textoAcao}>Editar</Text></Pressable>
@@ -376,7 +376,7 @@ export default function AdminLeiloesScreen() {
             </View>
           </View>
         ))}
-        {!leiloes.length ? <Text style={styles.vazio}>Sem leiloes cadastrados.</Text> : null}
+        {!leiloes.length ? <Text style={styles.vazio}>Sem leilões cadastrados.</Text> : null}
       </View>
     </ScrollView>
   );

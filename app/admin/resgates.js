@@ -49,7 +49,7 @@ export default function AdminResgatesScreen() {
       await atualizarStatusResgateAdmin(token, redemptionId, 'confirmed');
       await carregar();
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Nao foi possivel atualizar status do resgate.');
+      Alert.alert('Erro', error?.message || 'Não foi possível atualizar status do resgate.');
     } finally {
       setCarregando(false);
     }
@@ -62,13 +62,13 @@ export default function AdminResgatesScreen() {
       refreshControl={<RefreshControl refreshing={carregando} onRefresh={carregar} />}
     >
       <View style={styles.card}>
-        <Text style={styles.titulo}>Solicitacoes de resgate</Text>
+        <Text style={styles.titulo}>Solicitações de resgate</Text>
         {resgates.map((item) => (
           <View key={item.id} style={styles.itemLinha}>
             <Text style={styles.itemTitulo}>{item.auctionTitle}</Text>
             <Text style={styles.itemInfo}>Usuario: {item.userFirstName} {item.userLastName}</Text>
             <Text style={styles.itemInfo}>Status: {traduzirStatusResgate(item.status)}</Text>
-            <Text style={styles.itemInfo}>Pagamento: {item.paymentMethod === 'deposito_simulado' ? 'Deposito simulado' : item.paymentMethod}</Text>
+            <Text style={styles.itemInfo}>Pagamento: {item.paymentMethod === 'deposito_simulado' ? 'Depósito simulado' : item.paymentMethod}</Text>
             <Text style={styles.itemInfo}>Endereco: {item.addressLine}, {item.addressNumber} - {item.city}/{item.state}</Text>
 
             {item.status === 'requested' ? (
@@ -80,7 +80,7 @@ export default function AdminResgatesScreen() {
             ) : null}
           </View>
         ))}
-        {!resgates.length ? <Text style={styles.vazio}>Sem solicitacoes de resgate no momento.</Text> : null}
+        {!resgates.length ? <Text style={styles.vazio}>Sem solicitações de resgate no momento.</Text> : null}
       </View>
     </ScrollView>
   );

@@ -79,7 +79,7 @@ export default function AdminParticipantesScreen() {
       setLeilaoSelecionado(auctionId);
       await carregarParticipantes(auctionId);
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Nao foi possivel listar participantes.');
+      Alert.alert('Erro', error?.message || 'Não foi possível listar participantes.');
     } finally {
       setCarregando(false);
     }
@@ -92,7 +92,7 @@ export default function AdminParticipantesScreen() {
       refreshControl={<RefreshControl refreshing={carregando} onRefresh={carregar} />}
     >
       <View style={styles.card}>
-        <Text style={styles.titulo}>Participantes por leilao</Text>
+        <Text style={styles.titulo}>Participantes por leilão</Text>
         <View style={styles.chipsLinha}>
           {leiloes.map((item) => (
             <Pressable
@@ -109,7 +109,7 @@ export default function AdminParticipantesScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.tituloLista}>{nomeLeilaoSelecionado ? `Leilao: ${nomeLeilaoSelecionado}` : 'Selecione um leilao'}</Text>
+        <Text style={styles.tituloLista}>{nomeLeilaoSelecionado ? `Leilão: ${nomeLeilaoSelecionado}` : 'Selecione um leilão'}</Text>
         {participantes.map((item, index) => (
           <View key={item.id} style={styles.itemLinha}>
             <Text style={styles.itemTitulo}>#{index + 1} {item.firstName} {item.lastName}</Text>
@@ -119,7 +119,7 @@ export default function AdminParticipantesScreen() {
             <Text style={styles.itemInfo}>Qtd. lances: {item.bidsCount} | Max bid: R$ {formatarMoney(item.maxBid)}</Text>
           </View>
         ))}
-        {!participantes.length ? <Text style={styles.vazio}>Sem participantes para o leilao selecionado.</Text> : null}
+        {!participantes.length ? <Text style={styles.vazio}>Sem participantes para o leilão selecionado.</Text> : null}
       </View>
     </ScrollView>
   );

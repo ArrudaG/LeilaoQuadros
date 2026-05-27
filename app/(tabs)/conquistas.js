@@ -425,14 +425,14 @@ export default function TelaConquistas() {
 
       <View style={styles.card}>
         <Text style={styles.subtitulo}>Resumo</Text>
-        <Text style={styles.info}>Leiloes vencidos: {totalVitorias}</Text>
+        <Text style={styles.info}>Leilões vencidos: {totalVitorias}</Text>
         <Text style={styles.info}>Saldo: R$ {money(carteira.walletBalance)}</Text>
         <Text style={styles.info}>Reservado: R$ {money(carteira.walletReserved)}</Text>
-        <Text style={styles.info}>Disponivel: R$ {money(carteira.walletAvailable)}</Text>
+        <Text style={styles.info}>Disponível: R$ {money(carteira.walletAvailable)}</Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.subtitulo}>Leiloes vencidos</Text>
+        <Text style={styles.subtitulo}>Leilões vencidos</Text>
         {wins.map((item) => (
           <View key={item.id} style={styles.winItem}>
             {!!item.mediaUrl && <Image source={{ uri: montarUrlImagem(item.mediaUrl) }} style={styles.winImage} />}
@@ -453,15 +453,15 @@ export default function TelaConquistas() {
             ) : null}
           </View>
         ))}
-        {!wins.length ? <Text style={styles.vazio}>Voce ainda nao venceu nenhum leilao.</Text> : null}
+        {!wins.length ? <Text style={styles.vazio}>Você ainda não venceu nenhum leilão.</Text> : null}
       </View>
 
       <Modal visible={Boolean(resgateModal)} transparent animationType="slide" onRequestClose={() => setResgateModal(null)}>
         <View style={styles.overlay}>
           <ScrollView style={styles.modal} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="always">
             <Text style={styles.subtitulo}>Resgatar item</Text>
-            <Text style={styles.info}>Leilao: {resgateModal?.title}</Text>
-            <Text style={styles.info}>Pagamento: Deposito simulado</Text>
+            <Text style={styles.info}>Leilão: {resgateModal?.title}</Text>
+            <Text style={styles.info}>Pagamento: Depósito simulado</Text>
 
             <TextInput
               style={styles.input}
@@ -473,7 +473,7 @@ export default function TelaConquistas() {
               }}
             />
 
-            {carregandoSugestoes ? <Text style={styles.sugestaoInfo}>Buscando sugestoes...</Text> : null}
+            {carregandoSugestoes ? <Text style={styles.sugestaoInfo}>Buscando sugestões...</Text> : null}
 
             {sugestoesEndereco.length ? (
               <View style={styles.sugestoesBox}>

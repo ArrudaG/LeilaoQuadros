@@ -206,10 +206,10 @@ export default function TelaLeiloes() {
 
   return (
     <View style={styles.tela}>
-      <Text style={styles.titulo}>Leiloes</Text>
+      <Text style={styles.titulo}>Leilões</Text>
 
       <View style={styles.saldoTopo}>
-        <Text style={styles.saldoTopoLabel}>Saldo disponivel para lance</Text>
+        <Text style={styles.saldoTopoLabel}>Saldo disponível para lance</Text>
         <Text style={styles.saldoTopoValor}>R$ {Number(carteira.walletAvailable || 0).toFixed(2)}</Text>
       </View>
 
@@ -231,7 +231,7 @@ export default function TelaLeiloes() {
         renderItem={renderLeilao}
         refreshControl={<RefreshControl refreshing={carregando} onRefresh={() => carregarLeiloes(statusAtivo)} />}
         contentContainerStyle={styles.lista}
-        ListEmptyComponent={<Text style={styles.vazio}>Nao ha leiloes nesta categoria.</Text>}
+        ListEmptyComponent={<Text style={styles.vazio}>Não há leilões nesta categoria.</Text>}
       />
 
       <Modal
@@ -259,8 +259,8 @@ export default function TelaLeiloes() {
 
                 <Text style={styles.storyInfo}>Status: {traduzirStatus(detalheLeilao?.auction?.status)}</Text>
                 <Text style={styles.storyInfo}>Atual: R$ {formatarMoeda(detalheLeilao?.auction?.currentBid)}</Text>
-                <Text style={styles.storyInfo}>Minimo: R$ {formatarMoeda(lanceMinimo)}</Text>
-                <Text style={styles.storyInfo}>Inicio: {formatarData(detalheLeilao?.auction?.startsAt)}</Text>
+                <Text style={styles.storyInfo}>Mínimo: R$ {formatarMoeda(lanceMinimo)}</Text>
+                <Text style={styles.storyInfo}>Início: {formatarData(detalheLeilao?.auction?.startsAt)}</Text>
                 <Text style={styles.storyInfo}>Fim: {formatarData(detalheLeilao?.auction?.endsAt)}</Text>
 
                 <TextInput
@@ -286,7 +286,7 @@ export default function TelaLeiloes() {
                   </Pressable>
                 </View>
 
-                {!podeLancar ? <Text style={styles.aviso}>Esse leilao nao esta apto para receber lances agora.</Text> : null}
+                {!podeLancar ? <Text style={styles.aviso}>Esse leilão não esta apto para receber lances agora.</Text> : null}
               </>
             )}
           </View>

@@ -12,23 +12,23 @@ export default function TelaInicio() {
       await sair();
       router.replace('/login');
     } catch {
-      Alert.alert('Erro', 'Nao foi possivel sair da conta.');
+      Alert.alert('Erro', 'Não foi possível sair da conta.');
     }
   }
 
   return (
     <View style={styles.tela}>
       <View style={styles.hero}>
-        <Text style={styles.eyebrow}>LeilaoQuadros</Text>
+        <Text style={styles.eyebrow}>Leilão Mania</Text>
         <Text style={styles.titulo}>Bem-vindo, {usuario?.firstName || 'usuario'}.</Text>
         <Text style={styles.subtitulo}>
-          Explore leiloes em geral, acompanhe oportunidades em tempo real e participe quando fizer sentido para voce.
+          Explore leilões em geral, acompanhe oportunidades em tempo real e participe quando fizer sentido para você.
         </Text>
       </View>
 
       <View style={styles.acoes}>
         <Pressable style={styles.botaoPrimario} onPress={() => router.push('/(tabs)/leiloes')}>
-          <Text style={styles.textoBotaoPrimario}>Ver leiloes</Text>
+          <Text style={styles.textoBotaoPrimario}>Ver leilões</Text>
         </Pressable>
 
         <Pressable style={styles.botaoSecundario} onPress={aoClicarSair}>
