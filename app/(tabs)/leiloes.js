@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
 import {
   Alert,
   FlatList,
@@ -16,7 +15,7 @@ import {
 
 import { useAutenticacao } from '../../src/auth/context/contexto-autenticacao';
 import { API_BASE_URL } from '../../src/auth/services/servico-api';
-import { buscarCarteira, buscarDetalheLeilao, enviarLance, listarLeiloes } from '../../src/auth/services/servico-leilao';
+import { buscarDetalheLeilao, enviarLance, listarLeiloes } from '../../src/auth/services/servico-leilao';
 
 const filtrosStatus = ['active', 'scheduled', 'closed', 'cancelled'];
 const statusLabel = {
@@ -60,7 +59,7 @@ function formatarData(valor) {
 }
 
 export default function TelaLeiloes() {
-  const { token } = useAutenticacao();
+  const { token, usuario } = useAutenticacao();
   const [statusAtivo, setStatusAtivo] = useState('active');
   const [leiloes, setLeiloes] = useState([]);
   const [carregando, setCarregando] = useState(false);
@@ -68,20 +67,6 @@ export default function TelaLeiloes() {
   const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
   const [enviandoLance, setEnviandoLance] = useState(false);
   const [valorLance, setValorLance] = useState('');
-  const [carteira, setCarteira] = useState({ walletBalance: 0, walletReserved: 0, walletAvailable: 0 });
-
-  const carregarCarteira = useCallback(async () => {
-    if (!token) {
-      return;
-    }
-
-    try {
-      const walletRes = await buscarCarteira(token);
-      setCarteira(walletRes.wallet || { walletBalance: 0, walletReserved: 0, walletAvailable: 0 });
-    } catch {
-      setCarteira({ walletBalance: 0, walletReserved: 0, walletAvailable: 0 });
-    }
-  }, [token]);
 
   const carregarLeiloes = useCallback(async (status) => {
     if (!token) {
@@ -102,12 +87,6 @@ export default function TelaLeiloes() {
   useEffect(() => {
     carregarLeiloes(statusAtivo);
   }, [carregarLeiloes, statusAtivo]);
-
-  useFocusEffect(
-    useCallback(() => {
-      carregarCarteira();
-    }, [carregarCarteira]),
-  );
 
   async function abrirStory(auctionId) {
     if (!token) {
@@ -151,8 +130,14 @@ export default function TelaLeiloes() {
     const agora = Date.now();
     const inicio = new Date(leilao.startsAt).getTime();
     const fim = new Date(leilao.endsAt).getTime();
-    return leilao.status === 'active' && agora >= inicio && agora < fim;
-  }, [detalheLeilao]);
+    const usuarioAtualLidera = String(leilao.highestBidderUserId || '') === String(usuario?.id || '');
+    return leilao.status === 'active' && agora >= inicio && agora < fim && !usuarioAtualLidera;
+  }, [detalheLeilao, usuario?.id]);
+
+  const usuarioAtualLidera = useMemo(() => {
+    const liderId = detalheLeilao?.auction?.highestBidderUserId;
+    return Boolean(liderId) && String(liderId) === String(usuario?.id || '');
+  }, [detalheLeilao?.auction?.highestBidderUserId, usuario?.id]);
 
   async function confirmarLance() {
     if (!token || !detalheLeilao?.auction) {
@@ -171,13 +156,17 @@ export default function TelaLeiloes() {
       return;
     }
 
+    if (usuarioAtualLidera) {
+      Alert.alert('Aguarde outro lance', 'Voce ja tem o maior lance neste leilao.');
+      return;
+    }
+
     try {
       setEnviandoLance(true);
       const resposta = await enviarLance(token, detalheLeilao.auction.id, amount);
       const auctionAtualizado = resposta.auction;
 
       setLeiloes((anterior) => anterior.map((item) => (item.id === auctionAtualizado.id ? { ...item, ...auctionAtualizado } : item)));
-      await carregarCarteira();
       await abrirStory(auctionAtualizado.id);
       Alert.alert('Sucesso', 'Lance enviado com sucesso.');
     } catch (error) {
@@ -207,11 +196,6 @@ export default function TelaLeiloes() {
   return (
     <View style={styles.tela}>
       <Text style={styles.titulo}>Leilões</Text>
-
-      <View style={styles.saldoTopo}>
-        <Text style={styles.saldoTopoLabel}>Saldo disponível para lance</Text>
-        <Text style={styles.saldoTopoValor}>R$ {Number(carteira.walletAvailable || 0).toFixed(2)}</Text>
-      </View>
 
       <View style={styles.filtros}>
         {filtrosStatus.map((status) => (
@@ -286,7 +270,11 @@ export default function TelaLeiloes() {
                   </Pressable>
                 </View>
 
-                {!podeLancar ? <Text style={styles.aviso}>Esse leilão não esta apto para receber lances agora.</Text> : null}
+                {!podeLancar ? (
+                  <Text style={styles.aviso}>
+                    {usuarioAtualLidera ? 'Voce ja lidera este leilao. Aguarde outro participante.' : 'Esse leilão não esta apto para receber lances agora.'}
+                  </Text>
+                ) : null}
               </>
             )}
           </View>
@@ -315,27 +303,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 8,
     flexWrap: 'wrap',
-  },
-  saldoTopo: {
-    marginHorizontal: 16,
-    marginBottom: 10,
-    backgroundColor: '#ecfeff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#a5f3fc',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-  },
-  saldoTopoLabel: {
-    color: '#0f766e',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  saldoTopoValor: {
-    color: '#134e4a',
-    fontSize: 20,
-    fontWeight: '800',
-    marginTop: 2,
   },
   filtro: {
     backgroundColor: '#e2e8f0',

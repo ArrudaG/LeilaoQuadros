@@ -1,12 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { Alert, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useAutenticacao } from '@/src/auth/context/contexto-autenticacao';
 import { API_BASE_URL } from '@/src/auth/services/servico-api';
 import { escolherFotoDaGaleria, tirarFotoAgora } from '@/src/auth/services/servico-foto';
-import { buscarCarteira, simularDeposito } from '@/src/auth/services/servico-leilao';
 
 function montarUrlImagem(url) {
   if (!url) {
@@ -20,25 +17,15 @@ function montarUrlImagem(url) {
   return `${API_BASE_URL}${url}`;
 }
 
-function dataParaIso(valor) {
+function dataIsoParaBr(valor) {
   const texto = String(valor || '').trim();
   const matchBr = texto.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
 
   if (matchBr) {
-    return `${matchBr[3]}-${matchBr[2]}-${matchBr[1]}`;
-  }
-
-  const matchIso = texto.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (matchIso) {
     return texto;
   }
 
-  return '';
-}
-
-function dataIsoParaBr(valor) {
-  const texto = String(valor || '').trim();
-  const matchIso = texto.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const matchIso = texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
 
   if (!matchIso) {
     return texto;
@@ -47,48 +34,16 @@ function dataIsoParaBr(valor) {
   return `${matchIso[3]}/${matchIso[2]}/${matchIso[1]}`;
 }
 
-function dateParaBr(data) {
-  const dia = String(data.getDate()).padStart(2, '0');
-  const mes = String(data.getMonth() + 1).padStart(2, '0');
-  const ano = String(data.getFullYear());
-  return `${dia}/${mes}/${ano}`;
-}
-
-function dataTextoParaDate(valor) {
-  const iso = dataParaIso(valor);
-  const match = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-
-  if (!match) {
-    return null;
-  }
-
-  const ano = Number(match[1]);
-  const mes = Number(match[2]);
-  const dia = Number(match[3]);
-  const data = new Date(ano, mes - 1, dia);
-
-  if (Number.isNaN(data.getTime())) {
-    return null;
-  }
-
-  return data;
-}
-
 export default function TelaPerfil() {
-  const { usuario, token, atualizarDadosPerfil, atualizarFotoPerfil, removerFotoPerfilUsuario } = useAutenticacao();
+  const { usuario, atualizarDadosPerfil, atualizarFotoPerfil, removerFotoPerfilUsuario } = useAutenticacao();
   const [nome, setNome] = useState('');
   const [sobrenome, setSobrenome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
-  const [dataNascimentoSelecionada, setDataNascimentoSelecionada] = useState(new Date(2000, 0, 1));
-  const [mostrarCalendarioNascimento, setMostrarCalendarioNascimento] = useState(false);
   const [salvandoDados, setSalvandoDados] = useState(false);
   const [acaoFoto, setAcaoFoto] = useState('');
   const [previewFoto, setPreviewFoto] = useState(null);
-  const [carteira, setCarteira] = useState({ walletBalance: 0, walletReserved: 0, walletAvailable: 0 });
-  const [depositoValor, setDepositoValor] = useState('100');
-  const [depositando, setDepositando] = useState(false);
 
   useEffect(() => {
     setNome(usuario?.firstName || '');
@@ -97,76 +52,7 @@ export default function TelaPerfil() {
     setTelefone(usuario?.phone || '');
     const dataTexto = dataIsoParaBr(usuario?.birthDate || '');
     setDataNascimento(dataTexto);
-
-    const dataConvertida = dataTextoParaDate(dataTexto);
-    if (dataConvertida) {
-      setDataNascimentoSelecionada(dataConvertida);
-    }
   }, [usuario?.firstName, usuario?.lastName, usuario?.email, usuario?.phone, usuario?.birthDate]);
-
-  function abrirCalendarioNascimento() {
-    const dataAtual = dataTextoParaDate(dataNascimento) || dataNascimentoSelecionada;
-    setDataNascimentoSelecionada(dataAtual);
-    setMostrarCalendarioNascimento(true);
-  }
-
-  function aoTrocarDataNascimento(event, dataSelecionada) {
-    if (Platform.OS === 'android') {
-      setMostrarCalendarioNascimento(false);
-    }
-
-    if (event?.type === 'dismissed' || !dataSelecionada) {
-      return;
-    }
-
-    setDataNascimentoSelecionada(dataSelecionada);
-    setDataNascimento(dateParaBr(dataSelecionada));
-  }
-
-  function idadeMinimaAtingida(dataIso) {
-    const dataNormalizada = dataParaIso(dataIso);
-    const match = String(dataNormalizada || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
-
-    if (!match) {
-      return false;
-    }
-
-    const ano = Number(match[1]);
-    const mes = Number(match[2]);
-    const dia = Number(match[3]);
-    const nascimento = new Date(Date.UTC(ano, mes - 1, dia));
-
-    if (
-      nascimento.getUTCFullYear() !== ano
-      || nascimento.getUTCMonth() !== mes - 1
-      || nascimento.getUTCDate() !== dia
-    ) {
-      return false;
-    }
-
-    const hoje = new Date();
-    const limite = new Date(Date.UTC(hoje.getUTCFullYear() - 18, hoje.getUTCMonth(), hoje.getUTCDate()));
-    return nascimento <= limite;
-  }
-
-  const carregarResumoPerfil = useCallback(async () => {
-    if (!token) {
-      return;
-    }
-
-    try {
-      const walletRes = await buscarCarteira(token);
-      setCarteira(walletRes.wallet || { walletBalance: 0, walletReserved: 0, walletAvailable: 0 });
-    } catch {
-      setCarteira({ walletBalance: 0, walletReserved: 0, walletAvailable: 0 });
-    }
-  }, [token]);
-
-  useFocusEffect(
-    useCallback(() => {
-      carregarResumoPerfil();
-    }, [carregarResumoPerfil]),
-  );
 
   const iniciais = useMemo(() => {
     const a = (usuario?.firstName?.[0] || '').toUpperCase();
@@ -182,16 +68,9 @@ export default function TelaPerfil() {
     const sobrenomeFinal = sobrenome.trim();
     const emailFinal = email.trim().toLowerCase();
     const telefoneFinal = telefone.trim();
-    const dataNascimentoFinal = dataNascimento.trim();
-    const birthDateIso = dataParaIso(dataNascimentoFinal);
 
-    if (!nomeFinal || !sobrenomeFinal || !emailFinal || !telefoneFinal || !dataNascimentoFinal) {
-      Alert.alert('Atenção', 'Nome, sobrenome, email, telefone e data de nascimento são obrigatórios.');
-      return;
-    }
-
-    if (!idadeMinimaAtingida(dataNascimentoFinal)) {
-      Alert.alert('Atenção', 'É necessário ter no mínimo 18 anos. Use data no formato DD/MM/AAAA.');
+    if (!nomeFinal || !sobrenomeFinal || !emailFinal || !telefoneFinal) {
+      Alert.alert('Atenção', 'Nome, sobrenome, email e telefone são obrigatórios.');
       return;
     }
 
@@ -202,37 +81,12 @@ export default function TelaPerfil() {
         lastName: sobrenomeFinal,
         email: emailFinal,
         phone: telefoneFinal,
-        birthDate: birthDateIso,
       });
       Alert.alert('Sucesso', 'Perfil atualizado no banco de dados.');
     } catch (error) {
       Alert.alert('Erro', error?.message || 'Não foi possível atualizar seu perfil.');
     } finally {
       setSalvandoDados(false);
-    }
-  }
-
-  async function depositarSaldo() {
-    if (!token) {
-      return;
-    }
-
-    const valor = Number(depositoValor);
-    if (!Number.isFinite(valor) || valor <= 0) {
-      Alert.alert('Valor invalido', 'Informe um valor valido para deposito.');
-      return;
-    }
-
-    try {
-      setDepositando(true);
-      await simularDeposito(token, valor);
-      const walletRes = await buscarCarteira(token);
-      setCarteira(walletRes.wallet || { walletBalance: 0, walletReserved: 0, walletAvailable: 0 });
-      Alert.alert('Sucesso', 'Deposito simulado registrado na sua conta.');
-    } catch (error) {
-      Alert.alert('Erro', error?.message || 'Nao foi possivel registrar deposito.');
-    } finally {
-      setDepositando(false);
     }
   }
 
@@ -344,25 +198,6 @@ export default function TelaPerfil() {
       </View>
 
       <View style={styles.cartaoDados}>
-        <View style={styles.boxSaldo}>
-          <Text style={styles.label}>Saldo simulado</Text>
-          <Text style={styles.textoSaldo}>Balanço: R$ {Number(carteira.walletBalance || 0).toFixed(2)}</Text>
-          <Text style={styles.textoSaldoAux}>Reservado: R$ {Number(carteira.walletReserved || 0).toFixed(2)}</Text>
-          <Text style={styles.textoSaldoAux}>Disponível: R$ {Number(carteira.walletAvailable || 0).toFixed(2)}</Text>
-
-          <TextInput
-            value={depositoValor}
-            onChangeText={setDepositoValor}
-            style={styles.input}
-            placeholder="Valor para depósito"
-            keyboardType="decimal-pad"
-          />
-
-          <Pressable onPress={depositarSaldo} style={styles.botaoDeposito} disabled={depositando}>
-            <Text style={styles.textoBotaoPrincipal}>{depositando ? 'Depositando...' : 'Depositar saldo'}</Text>
-          </Pressable>
-        </View>
-
         <Text style={styles.label}>Nome</Text>
         <TextInput
           value={nome}
@@ -401,29 +236,11 @@ export default function TelaPerfil() {
         />
 
         <Text style={styles.label}>Data de nascimento</Text>
-        <Pressable onPress={abrirCalendarioNascimento} style={styles.input}>
+        <View style={[styles.input, styles.inputSomenteLeitura]}>
           <Text style={dataNascimento ? styles.inputTexto : styles.inputPlaceholder}>
-            {dataNascimento || 'DD/MM/AAAA'}
+            {dataNascimento || 'Nao informada'}
           </Text>
-        </Pressable>
-
-        {mostrarCalendarioNascimento && (
-          <View style={styles.boxCalendario}>
-            <DateTimePicker
-              value={dataNascimentoSelecionada}
-              mode="date"
-              display="default"
-              maximumDate={new Date()}
-              onChange={aoTrocarDataNascimento}
-            />
-
-            {Platform.OS === 'ios' && (
-              <Pressable style={styles.botaoCalendario} onPress={() => setMostrarCalendarioNascimento(false)}>
-                <Text style={styles.textoBotaoCalendario}>Fechar calendário</Text>
-              </Pressable>
-            )}
-          </View>
-        )}
+        </View>
 
         <Pressable onPress={salvarPerfil} style={styles.botaoPrincipal} disabled={salvandoDados}>
           <Text style={styles.textoBotaoPrincipal}>{salvandoDados ? 'Salvando...' : 'Salvar Alterações'}</Text>
@@ -535,29 +352,6 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 8,
   },
-  boxSaldo: {
-    backgroundColor: '#ecfeff',
-    borderRadius: 12,
-    padding: 8,
-    gap: 6,
-    marginBottom: 8,
-  },
-  textoSaldo: {
-    color: '#0f172a',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  textoSaldoAux: {
-    color: '#0f766e',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  botaoDeposito: {
-    backgroundColor: '#0f766e',
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
   label: {
     color: '#0f172a',
     fontSize: 13,
@@ -573,6 +367,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     minHeight: 40,
     justifyContent: 'center',
+  },
+  inputSomenteLeitura: {
+    backgroundColor: '#f1f5f9',
   },
   inputTexto: {
     color: '#0f172a',

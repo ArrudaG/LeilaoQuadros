@@ -200,6 +200,134 @@ adminRoutes.post('/auctions', async (req, res) => {
   }
 });
 
+adminRoutes.patch('/auctions/:auctionId/finish', async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const current = await client.query(
+      `SELECT *
+       FROM leilao_auctions
+       WHERE id = $1
+       FOR UPDATE`,
+      [req.params.auctionId],
+    );
+
+    if (current.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Leilao nao encontrado.' });
+    }
+
+    const auction = current.rows[0];
+
+    if (auction.status === 'cancelled') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ message: 'Leilao cancelado nao pode ser encerrado.' });
+    }
+
+    if (auction.status === 'closed') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ message: 'Leilao ja encerrado.' });
+    }
+
+    const highest = await client.query(
+      `SELECT user_id, amount
+       FROM leilao_bids
+       WHERE auction_id = $1
+       ORDER BY amount DESC, created_at ASC
+       LIMIT 1`,
+      [auction.id],
+    );
+
+    const winningBid = highest.rows[0] || null;
+    const winnerUserId = winningBid?.user_id || null;
+    const winnerAmount = winningBid ? Number(winningBid.amount || 0) : null;
+    const cobrarNoFechamento = false;
+
+    const updated = await client.query(
+      `UPDATE leilao_auctions
+       SET
+         status = 'closed',
+         starts_at = CASE WHEN starts_at >= NOW() THEN NOW() - INTERVAL '1 second' ELSE starts_at END,
+         ends_at = NOW(),
+         winner_user_id = $1,
+         winner_bid = $2,
+         current_bid = COALESCE($2, current_bid),
+         updated_at = NOW()
+       WHERE id = $3
+       RETURNING
+         id,
+         title,
+         description,
+         media_url AS "mediaUrl",
+         starting_bid AS "startingBid",
+         current_bid AS "currentBid",
+         min_increment AS "minIncrement",
+         starts_at AS "startsAt",
+         ends_at AS "endsAt",
+         status,
+         winner_bid AS "winnerBid",
+         created_at AS "createdAt",
+         updated_at AS "updatedAt"`,
+      [winnerUserId, winnerAmount, auction.id],
+    );
+
+    if (cobrarNoFechamento && winnerUserId && winnerAmount != null) {
+      const alreadySettled = await client.query(
+        `SELECT id
+         FROM leilao_wallet_transactions
+         WHERE auction_id = $1
+           AND type = 'settlement'
+         LIMIT 1`,
+        [auction.id],
+      );
+
+      if (alreadySettled.rowCount === 0) {
+        await client.query(
+          `UPDATE leilao_users
+           SET
+             wallet_reserved = GREATEST(0, wallet_reserved - $1),
+             wallet_balance = GREATEST(0, wallet_balance - $1),
+             updated_at = NOW()
+           WHERE id = $2`,
+          [winnerAmount, winnerUserId],
+        );
+
+        await client.query(
+          `INSERT INTO leilao_wallet_transactions (user_id, auction_id, type, amount, description)
+           VALUES ($1, $2, 'settlement', $3, 'Liquidacao manual do leilao: ' || COALESCE($4, ''))`,
+          [winnerUserId, auction.id, winnerAmount, auction.title],
+        );
+      }
+    }
+
+    const metrics = await client.query(
+      `SELECT
+         COUNT(*)::int AS "bidsCount",
+         COUNT(DISTINCT user_id)::int AS "participantsCount"
+       FROM leilao_bids
+       WHERE auction_id = $1`,
+      [auction.id],
+    );
+
+    await client.query('COMMIT');
+
+    return res.json({
+      auction: {
+        ...updated.rows[0],
+        bidsCount: Number(metrics.rows[0].bidsCount || 0),
+        participantsCount: Number(metrics.rows[0].participantsCount || 0),
+      },
+    });
+  } catch {
+    await client.query('ROLLBACK');
+    return res.status(500).json({ message: 'Erro ao encerrar leilao.' });
+  } finally {
+    client.release();
+  }
+});
+
 adminRoutes.patch('/auctions/:auctionId', async (req, res) => {
   const parsed = updateAuctionSchema.safeParse(req.body);
 
@@ -286,9 +414,12 @@ adminRoutes.get('/winners', async (_, res) => {
          u.id AS "winnerId",
          u.first_name AS "winnerFirstName",
          u.last_name AS "winnerLastName",
-         u.cpf AS "winnerCpf"
+         u.cpf AS "winnerCpf",
+         r.payment_status AS "paymentStatus",
+         r.status AS "redemptionStatus"
        FROM leilao_auctions a
        LEFT JOIN leilao_users u ON u.id = a.winner_user_id
+       LEFT JOIN leilao_redemptions r ON r.auction_id = a.id
        WHERE a.status = 'closed'
        ORDER BY a.ends_at DESC`,
     );
@@ -334,6 +465,9 @@ adminRoutes.get('/redemptions', async (_, res) => {
          r.auction_id AS "auctionId",
          r.user_id AS "userId",
          r.payment_method AS "paymentMethod",
+         r.payment_status AS "paymentStatus",
+         r.payment_reference AS "paymentReference",
+         r.paid_at AS "paidAt",
          r.address_line AS "addressLine",
          r.address_number AS "addressNumber",
          r.district,
@@ -353,6 +487,7 @@ adminRoutes.get('/redemptions', async (_, res) => {
        FROM leilao_redemptions r
        INNER JOIN leilao_auctions a ON a.id = r.auction_id
        INNER JOIN leilao_users u ON u.id = r.user_id
+       WHERE r.status <> 'pending_address'
        ORDER BY
          CASE r.status WHEN 'requested' THEN 1 WHEN 'confirmed' THEN 2 ELSE 3 END,
          r.created_at DESC`,

@@ -31,7 +31,8 @@ export function ProvedorAutenticacao({ children }) {
 
   async function atualizarBiometriaDisponivel() {
     const aparelhoSuportaBiometria = await podeUsarBiometria();
-    setPodeMostrarBiometria(aparelhoSuportaBiometria);
+    const tokenBiometria = await pegarTokenBiometria();
+    setPodeMostrarBiometria(aparelhoSuportaBiometria && Boolean(tokenBiometria));
   }
 
   async function buscarUsuarioPorTokenBiometria(tokenBiometria) {
@@ -96,11 +97,30 @@ export function ProvedorAutenticacao({ children }) {
   useEffect(() => {
     async function iniciarSessao() {
       try {
+        const sessaoSalva = await carregarSessao();
+
+        if (!sessaoSalva?.token) {
+          setUsuario(null);
+          setToken(null);
+          return;
+        }
+
+        setUsuario(sessaoSalva.user);
+        setToken(sessaoSalva.token);
+
+        try {
+          const dadosAtualizados = await buscarMeuUsuario(sessaoSalva.token);
+          const usuarioAtualizado = dadosAtualizados?.user || sessaoSalva.user;
+
+          await salvarSessao(usuarioAtualizado, sessaoSalva.token);
+          setUsuario(usuarioAtualizado);
+        } catch {
+          // Mantem a sessao local para evitar voltar ao login por instabilidade temporaria da API.
+        }
+      } catch {
         await limparSessao();
         setUsuario(null);
         setToken(null);
-      } catch {
-        await limparSessao();
       } finally {
         await atualizarBiometriaDisponivel();
         setCarregando(false);
@@ -184,7 +204,15 @@ export function ProvedorAutenticacao({ children }) {
       throw new Error('Autenticação biométrica cancelada ou falhou.');
     }
 
-    const dadosUsuario = await buscarMeuUsuario(tokenSalvoBiometria);
+    let dadosUsuario;
+
+    try {
+      dadosUsuario = await buscarMeuUsuario(tokenSalvoBiometria);
+    } catch {
+      await limparTokenBiometria();
+      await atualizarBiometriaDisponivel();
+      throw new Error('Sessao biometrica expirada. Entre com CPF e senha para cadastrar a biometria novamente.');
+    }
 
     if (!dadosUsuario?.user?.biometricEnabled) {
       await limparTokenBiometria();

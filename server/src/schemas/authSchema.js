@@ -83,7 +83,7 @@ const updateProfileSchema = z.object({
   lastName: z.string().trim().min(1, 'Sobrenome é obrigatório'),
   email: z.string().email('Email inválido').transform((value) => value.trim().toLowerCase()),
   phone: z.string().trim().min(8, 'Telefone inválido'),
-  birthDate: birthDateSchema,
+  birthDate: birthDateSchema.optional(),
 });
 
 module.exports = {

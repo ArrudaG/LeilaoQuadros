@@ -1,91 +1,160 @@
 # Leilao de Quadros
 
-Projeto de leilao online de quadros.
-O usuario cria conta, entra nos leiloes, faz lances e acompanha o resultado.
-Quem terminar com o maior lance no prazo vence o item.
+Projeto universitario de leilao online de quadros, com aplicativo mobile em Expo/React Native e API em Node.js/Express.
 
-Tambem tem painel admin para gerenciar leiloes, acompanhar participantes, vencedores e resgates.
+O usuario cria conta, entra nos leiloes, faz lances em tempo real e acompanha seus itens vencidos. O administrador cria e gerencia leiloes, acompanha participantes, encerra leiloes e gerencia o fluxo de resgate/entrega.
+
+## Fluxo do sistema
+
+1. O usuario se cadastra ou faz login com CPF e senha.
+2. O app tambem pode guardar login por biometria no aparelho, quando ativado pelo usuario.
+3. O administrador acessa a area admin e cria leiloes com titulo, descricao, imagem, lance inicial, incremento minimo, status e duracao.
+4. Um leilao ativo pode receber lances imediatamente, sem tempo extra de espera.
+5. O mesmo usuario nao pode dar dois lances seguidos no mesmo leilao.
+6. O leilao encerra automaticamente pelo horario final ou manualmente pelo admin.
+7. Depois de vencer, o usuario paga o item em um checkout simulado.
+8. Apos o pagamento, o usuario informa o endereco de entrega e pode usar mapa/localizacao para ajudar no preenchimento.
+9. O admin acompanha resgates, confirma o envio e o usuario confirma o recebimento.
+
+O fluxo atual nao exige deposito previo em carteira. O pagamento acontece somente depois que o usuario vence um leilao.
 
 ## Tecnologias usadas
 
 - JavaScript
-	Linguagem principal do app mobile e da API.
+  Linguagem principal do app mobile e da API.
 
 - React Native + Expo + Expo Router
-	Interface mobile, navegação por tabs/rotas e recursos nativos (camera, galeria, biometria, localizacao).
+  Interface mobile, navegacao por rotas/tabs e recursos nativos como camera, galeria, biometria e localizacao.
 
 - Node.js + Express
-	Backend REST para autenticacao, leiloes, lances, carteira simulada e fluxo de resgate.
+  Backend REST para autenticacao, leiloes, lances, pagamentos simulados e resgates.
 
 - PostgreSQL + pg
-	Persistencia dos usuarios, leiloes, lances, carteira e historico de transacoes.
+  Persistencia de usuarios, leiloes, lances, vencedores, pagamentos e resgates.
 
 - JWT + Zod
-	JWT para sessao/autorizacao e Zod para validacao dos payloads da API.
+  Sessao/autorizacao via JWT e validacao dos payloads da API.
 
-- Multer + Supabase Storage (principal) + Azure Blob (alternativo)
-	Upload e armazenamento de imagens (perfil e midia dos leiloes).
-	No projeto atual, se tiver config do Supabase ele usa Supabase; Azure entra como opcao alternativa;
-	se nenhum dos dois estiver configurado, usa armazenamento local na pasta uploads.
+- Multer + Supabase Storage
+  Upload e armazenamento de imagens de perfil e midias dos leiloes. Se Supabase nao estiver configurado, o backend usa armazenamento local em `server/uploads`.
 
 ## Estrutura de pastas
 
-- app/
-	Rotas/telas do Expo Router.
-	Inclui telas publicas (login/register), tabs do usuario e area admin.
+- `app/`
+  Rotas/telas do Expo Router, incluindo login, cadastro, tabs do usuario e area admin.
 
-- app/(tabs)/
-	Telas principais do usuario: inicio, leiloes, conquistas, perfil e configuracoes.
+- `app/(tabs)/`
+  Telas principais do usuario: inicio, leiloes, conquistas, perfil e configuracoes.
 
-- app/admin/
-	Telas do administrador (resumo, leiloes, participantes, vencedores e resgates).
+- `app/admin/`
+  Telas do administrador: resumo, leiloes, participantes, vencedores e resgates.
 
-- src/auth/
-	Camada de autenticacao e integracao com API no app.
-	Contem context, servicos, storage local e componentes relacionados ao login/perfil.
+- `src/auth/`
+  Contexto de autenticacao, servicos de API, storage local e componentes de login/perfil.
 
-- components/
-	Componentes reutilizaveis de UI e comportamento (ex: botoes de aba, icones, componentes de tema).
+- `server/`
+  Backend Node.js/Express.
 
-- hooks/
-	Hooks utilitarios de tema e esquema de cor.
+- `server/src/routes/`
+  Endpoints da API: autenticacao, leiloes e administracao.
 
-- constants/
-	Constantes de tema e configuracoes visuais compartilhadas.
+- `server/src/db/`
+  Conexao com PostgreSQL, inicializacao e schema SQL.
 
-- assets/
-	Imagens e recursos estaticos do app.
+- `server/src/services/`
+  Regras auxiliares, como agendador de leiloes e storage.
 
-- server/
-	Backend Node.js/Express separado do app mobile.
+## Variaveis de ambiente
 
-- server/src/routes/
-	Endpoints da API (auth, auctions e admin).
+Crie um `.env` na raiz do projeto para o frontend:
 
-- server/src/db/
-	Conexao com banco, inicializacao e schema SQL.
+```env
+EXPO_PUBLIC_API_URL=http://localhost:3333
+```
 
-- server/src/services/
-	Regras de negocio de apoio (agendador de leiloes, storage etc.).
+Para testar no celular usando ngrok, use a URL HTTPS do tunnel:
+
+```env
+EXPO_PUBLIC_API_URL=https://seu-dominio-ngrok.ngrok-free.dev
+```
+
+Crie um `server/.env` para o backend:
+
+```env
+DATABASE_URL=postgresql://usuario:senha@host:porta/database
+JWT_SECRET=sua_chave_jwt
+PORT=3333
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key
+SUPABASE_STORAGE_BUCKET=fotos
+```
+
+O login admin padrao, se nenhuma variavel for alterada, usa:
+
+```txt
+ADMIN_LOGIN_ID=admin
+ADMIN_PASSWORD=adminadmin
+```
+
+Os arquivos `.env` nao devem ser enviados para o Git.
+
+## Como rodar
+
+Instale as dependencias do frontend:
+
+```bash
+npm install
+```
+
+Instale as dependencias do backend:
+
+```bash
+cd server
+npm install
+```
+
+Inicie o backend:
+
+```bash
+cd server
+npm start
+```
+
+Em outro terminal, inicie o Expo:
+
+```bash
+npm start
+```
+
+Se o Expo tentar validar dependencias online e falhar, rode:
+
+```powershell
+$env:EXPO_NO_DEPENDENCY_VALIDATION="1"
+npm start
+```
+
+Para usar o app pelo celular com ngrok:
+
+```bash
+ngrok http --domain=seu-dominio-ngrok.ngrok-free.dev 3333
+```
 
 ## Testes
 
-Foram criados testes unitarios no backend para validar funcoes principais.
+Os testes unitarios do backend ficam em `server/tests/`.
 
-- Local dos testes
-	server/tests/
+Para rodar:
 
-- Arquivos de teste:
-  
-	authSchema.test.js
+```bash
+cd server
+npm test
+```
 
-	authMiddleware.test.js
+Tambem e possivel validar o app com:
 
-	servicoArmazenamento.test.js
-
-- Como rodar
-	Entrar na pasta server e executar:
-	node --test tests/*.test.js
+```bash
+npm run lint
+```
 
 ## Integrantes
 

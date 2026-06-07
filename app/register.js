@@ -193,7 +193,14 @@ export default function TelaCadastro() {
   }
 
   return (
-    <KeyboardAwareScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} keyboardShouldPersistTaps="handled">
+    <KeyboardAwareScrollView
+      contentContainerStyle={styles.conteudoTeclado}
+      enableOnAndroid
+      extraScrollHeight={24}
+      keyboardOpeningTime={0}
+      keyboardShouldPersistTaps="always"
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.caixaPrincipal}>
         <Text style={styles.titulo}>Criar conta</Text>
 
@@ -203,6 +210,7 @@ export default function TelaCadastro() {
           onChangeText={setNome}
           placeholder="Seu nome"
           autoCapitalize="words"
+          returnKeyType="next"
         />
 
         <EntradaAutenticacao
@@ -211,6 +219,7 @@ export default function TelaCadastro() {
           onChangeText={setSobrenome}
           placeholder="Seu sobrenome"
           autoCapitalize="words"
+          returnKeyType="next"
         />
 
         <EntradaAutenticacao
@@ -219,6 +228,7 @@ export default function TelaCadastro() {
           onChangeText={setCpf}
           placeholder="Somente números"
           keyboardType="number-pad"
+          returnKeyType="next"
         />
 
         <EntradaAutenticacao
@@ -227,6 +237,7 @@ export default function TelaCadastro() {
           onChangeText={setEmail}
           placeholder="seuemail@dominio.com"
           keyboardType="email-address"
+          returnKeyType="next"
         />
 
         <EntradaAutenticacao
@@ -235,6 +246,7 @@ export default function TelaCadastro() {
           onChangeText={setTelefone}
           placeholder="Seu telefone"
           keyboardType="phone-pad"
+          returnKeyType="next"
         />
 
         <View style={styles.caixaCampoData}>
@@ -270,6 +282,7 @@ export default function TelaCadastro() {
           onChangeText={setSenha}
           placeholder="Crie uma senha"
           secureTextEntry
+          returnKeyType="next"
         />
 
         <EntradaAutenticacao
@@ -278,6 +291,7 @@ export default function TelaCadastro() {
           onChangeText={setSenhaConfirmacao}
           placeholder="Repita a sua senha"
           secureTextEntry
+          returnKeyType="done"
         />
 
         <View style={styles.linhaOpcao}>
@@ -300,6 +314,11 @@ export default function TelaCadastro() {
 }
 
 const styles = StyleSheet.create({
+  conteudoTeclado: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+  },
   caixaPrincipal: {
     flex: 1,
     padding: 20,
