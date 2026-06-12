@@ -46,3 +46,4 @@ app-example
 
 .vscode/
 server/uploads/
+server/*.log

@@ -6,12 +6,23 @@ import { atualizarStatusResgateAdmin, listarResgatesAdmin } from '../../src/auth
 
 function traduzirStatusResgate(status) {
   const mapa = {
+    pending_address: 'Aguardando endereco',
     requested: 'Solicitado',
     confirmed: 'A caminho',
     delivered: 'Entregue',
   };
 
   return mapa[String(status || '').toLowerCase()] || 'Pendente';
+}
+
+function traduzirPagamento(method) {
+  const mapa = {
+    pix_simulado: 'PIX simulado',
+    cartao_simulado: 'Cartao simulado',
+    deposito_simulado: 'Deposito simulado',
+  };
+
+  return mapa[String(method || '').toLowerCase()] || 'Nao informado';
 }
 
 export default function AdminResgatesScreen() {
@@ -68,7 +79,8 @@ export default function AdminResgatesScreen() {
             <Text style={styles.itemTitulo}>{item.auctionTitle}</Text>
             <Text style={styles.itemInfo}>Usuario: {item.userFirstName} {item.userLastName}</Text>
             <Text style={styles.itemInfo}>Status: {traduzirStatusResgate(item.status)}</Text>
-            <Text style={styles.itemInfo}>Pagamento: {item.paymentMethod === 'deposito_simulado' ? 'Depósito simulado' : item.paymentMethod}</Text>
+            <Text style={styles.itemInfo}>Pagamento: {traduzirPagamento(item.paymentMethod)}</Text>
+            <Text style={styles.itemInfo}>Status pagamento: {item.paymentStatus === 'paid' ? 'Pago' : 'Pendente'}</Text>
             <Text style={styles.itemInfo}>Endereco: {item.addressLine}, {item.addressNumber} - {item.city}/{item.state}</Text>
 
             {item.status === 'requested' ? (

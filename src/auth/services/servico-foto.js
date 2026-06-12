@@ -1,17 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
 
-function obterMediaTypeImagem() {
-  if (ImagePicker.MediaType?.Images) {
-    return [ImagePicker.MediaType.Images];
-  }
-
-  if (ImagePicker.MediaType?.images) {
-    return [ImagePicker.MediaType.images];
-  }
-
-  return ['images'];
-}
-
 async function prepararImagem(asset) {
   if (!asset?.uri) {
     return null;
@@ -32,7 +20,7 @@ export async function escolherFotoDaGaleria() {
   }
 
   const resultado = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: obterMediaTypeImagem(),
+    mediaTypes: ['images'],
     allowsEditing: true,
     aspect: [1, 1],
     quality: 0.8,

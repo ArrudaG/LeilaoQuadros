@@ -7,6 +7,7 @@ import { API_BASE_URL } from '../../src/auth/services/servico-api';
 import {
   criarLeilaoAdmin,
   editarLeilaoAdmin,
+  encerrarLeilaoAdmin,
   enviarMidiaLeilaoAdmin,
   excluirLeilaoAdmin,
   listarLeiloesAdmin,
@@ -22,7 +23,7 @@ const formularioVazio = {
   minIncrement: '1',
   startsAt: new Date().toISOString(),
   endsAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-  status: 'scheduled',
+  status: 'active',
   durationMinutes: '60',
 };
 
@@ -32,7 +33,7 @@ const statusOptions = [
   { value: 'cancelled', label: 'Cancelado' },
 ];
 
-const duracoesPadrao = [15, 30, 60, 120, 180, 360, 720, 1440];
+const duracoesPadrao = [3, 5, 15, 30, 60, 120, 180, 360, 720, 1440];
 
 function formatarDataHora(value) {
   if (!value) {
@@ -74,6 +75,28 @@ function montarUrlImagem(url) {
   return `${API_BASE_URL}${url}`;
 }
 
+function calcularPeriodoPorDuracao(formAtual, minutos) {
+  const agora = new Date();
+  let inicio = formAtual.startsAt ? new Date(formAtual.startsAt) : agora;
+
+  if (Number.isNaN(inicio.getTime())) {
+    inicio = agora;
+  }
+
+  if (!formAtual.id || (formAtual.status === 'active' && inicio.getTime() > agora.getTime())) {
+    inicio = agora;
+  }
+
+  const contaAPartirDoInicio = formAtual.id && formAtual.status === 'scheduled' && inicio.getTime() > agora.getTime();
+  const baseFim = contaAPartirDoInicio ? inicio : agora;
+  const fim = new Date(baseFim.getTime() + minutos * 60 * 1000);
+
+  return {
+    startsAt: inicio.toISOString(),
+    endsAt: fim.toISOString(),
+  };
+}
+
 export default function AdminLeiloesScreen() {
   const { token } = useAutenticacao();
   const [carregando, setCarregando] = useState(false);
@@ -111,16 +134,19 @@ export default function AdminLeiloesScreen() {
       return;
     }
 
-    const agora = new Date();
-    const inicio = form.status === 'active' ? agora : new Date(agora.getTime() + 5 * 60 * 1000);
-    const fim = new Date(inicio.getTime() + minutos * 60 * 1000);
-
     setForm((anterior) => ({
       ...anterior,
-      startsAt: inicio.toISOString(),
-      endsAt: fim.toISOString(),
+      ...calcularPeriodoPorDuracao(anterior, minutos),
     }));
   }, [form.durationMinutes, form.status, form.id]);
+
+  function aplicarDuracao(minutos) {
+    setForm((anterior) => ({
+      ...anterior,
+      durationMinutes: String(minutos),
+      ...calcularPeriodoPorDuracao(anterior, minutos),
+    }));
+  }
 
   function editarLeilao(item) {
     const inicio = item.startsAt ? new Date(item.startsAt) : new Date();
@@ -258,6 +284,32 @@ export default function AdminLeiloesScreen() {
     ]);
   }
 
+  async function encerrarLeilao(auctionId) {
+    if (!token) {
+      return;
+    }
+
+    Alert.alert('Encerrar leilao', 'Deseja encerrar este leilao agora?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Encerrar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            setCarregando(true);
+            await encerrarLeilaoAdmin(token, auctionId);
+            await carregar();
+            Alert.alert('Sucesso', 'Leilao encerrado.');
+          } catch (error) {
+            Alert.alert('Erro', error?.message || 'Nao foi possivel encerrar o leilao.');
+          } finally {
+            setCarregando(false);
+          }
+        },
+      },
+    ]);
+  }
+
   return (
     <ScrollView
       style={styles.tela}
@@ -289,7 +341,7 @@ export default function AdminLeiloesScreen() {
             <Pressable
               key={String(minutos)}
               style={[styles.chip, Number(form.durationMinutes) === minutos ? styles.chipAtivo : null]}
-              onPress={() => setForm((s) => ({ ...s, durationMinutes: String(minutos) }))}
+              onPress={() => aplicarDuracao(minutos)}
             >
               <Text style={[styles.chipTexto, Number(form.durationMinutes) === minutos ? styles.chipTextoAtivo : null]}>
                 {minutos >= 60 ? `${Math.round(minutos / 60)}h` : `${minutos}m`}
@@ -372,6 +424,9 @@ export default function AdminLeiloesScreen() {
             <View style={styles.linhaAcoes}>
               <Pressable style={styles.acaoEditar} onPress={() => editarLeilao(item)}><Text style={styles.textoAcao}>Editar</Text></Pressable>
               <Pressable style={styles.acaoParticipantes} onPress={() => router.push(`/admin/participantes?auctionId=${encodeURIComponent(item.id)}`)}><Text style={styles.textoAcao}>Participantes</Text></Pressable>
+              {item.status !== 'closed' && item.status !== 'cancelled' ? (
+                <Pressable style={styles.acaoEncerrar} onPress={() => encerrarLeilao(item.id)}><Text style={styles.textoAcao}>Encerrar</Text></Pressable>
+              ) : null}
               <Pressable style={styles.acaoExcluir} onPress={() => removerLeilao(item.id)}><Text style={styles.textoAcao}>Excluir</Text></Pressable>
             </View>
           </View>
@@ -545,6 +600,7 @@ const styles = StyleSheet.create({
   },
   linhaAcoes: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginTop: 6,
   },
@@ -556,6 +612,12 @@ const styles = StyleSheet.create({
   },
   acaoParticipantes: {
     backgroundColor: '#0f766e',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  acaoEncerrar: {
+    backgroundColor: '#7c2d12',
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 10,

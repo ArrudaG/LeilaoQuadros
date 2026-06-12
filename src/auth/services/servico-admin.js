@@ -30,6 +30,13 @@ export function editarLeilaoAdmin(token, auctionId, payload) {
   });
 }
 
+export function encerrarLeilaoAdmin(token, auctionId) {
+  return requisicaoApi(`/api/admin/auctions/${auctionId}/finish`, {
+    method: 'PATCH',
+    headers: authHeader(token),
+  });
+}
+
 export function excluirLeilaoAdmin(token, auctionId) {
   return requisicaoApi(`/api/admin/auctions/${auctionId}`, {
     method: 'DELETE',

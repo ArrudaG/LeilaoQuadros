@@ -13,21 +13,6 @@ export function listarLeiloes(token, status = 'active') {
   });
 }
 
-export function buscarCarteira(token) {
-  return requisicaoApi('/api/auctions/wallet', {
-    method: 'GET',
-    headers: authHeader(token),
-  });
-}
-
-export function simularDeposito(token, amount) {
-  return requisicaoApi('/api/auctions/wallet/deposit', {
-    method: 'POST',
-    headers: authHeader(token),
-    body: JSON.stringify({ amount, method: 'deposito_simulado' }),
-  });
-}
-
 export function listarLeiloesVencidos(token) {
   return requisicaoApi('/api/auctions/wins', {
     method: 'GET',
@@ -40,6 +25,14 @@ export function resgatarItemLeilao(token, auctionId, payload) {
     method: 'POST',
     headers: authHeader(token),
     body: JSON.stringify(payload),
+  });
+}
+
+export function confirmarPagamentoLeilao(token, auctionId, paymentMethod) {
+  return requisicaoApi(`/api/auctions/${auctionId}/payment`, {
+    method: 'POST',
+    headers: authHeader(token),
+    body: JSON.stringify({ paymentMethod }),
   });
 }
 

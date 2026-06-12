@@ -53,7 +53,14 @@ async function sincronizarLeiloesPorHorario() {
          WHERE status = 'closed'
            AND winner_user_id IS NOT NULL
            AND winner_bid IS NOT NULL
+           AND FALSE
            AND updated_at >= NOW() - INTERVAL '20 seconds'
+           AND NOT EXISTS (
+             SELECT 1
+             FROM leilao_wallet_transactions t
+             WHERE t.auction_id = leilao_auctions.id
+               AND t.type = 'settlement'
+           )
        )
        UPDATE leilao_users u
        SET
@@ -71,7 +78,14 @@ async function sincronizarLeiloesPorHorario() {
          WHERE status = 'closed'
            AND winner_user_id IS NOT NULL
            AND winner_bid IS NOT NULL
+           AND FALSE
            AND updated_at >= NOW() - INTERVAL '20 seconds'
+           AND NOT EXISTS (
+             SELECT 1
+             FROM leilao_wallet_transactions t
+             WHERE t.auction_id = leilao_auctions.id
+               AND t.type = 'settlement'
+           )
        )
        INSERT INTO leilao_wallet_transactions (user_id, auction_id, type, amount, description)
        SELECT

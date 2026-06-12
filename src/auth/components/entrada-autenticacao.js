@@ -8,7 +8,12 @@ export function EntradaAutenticacao({
   placeholder,
   secureTextEntry,
   autoCapitalize = 'none',
+  autoComplete = 'off',
+  autoCorrect = false,
+  importantForAutofill = 'no',
   keyboardType = 'default',
+  textContentType = 'none',
+  ...props
 }) {
   return (
     <View style={styles.caixaCampo}>
@@ -19,8 +24,13 @@ export function EntradaAutenticacao({
         placeholder={placeholder}
         secureTextEntry={secureTextEntry}
         autoCapitalize={autoCapitalize}
+        autoComplete={autoComplete}
+        autoCorrect={autoCorrect}
+        importantForAutofill={importantForAutofill}
         keyboardType={keyboardType}
+        textContentType={textContentType}
         style={styles.entrada}
+        {...props}
       />
     </View>
   );

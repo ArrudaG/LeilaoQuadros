@@ -130,20 +130,75 @@ CREATE TABLE IF NOT EXISTS leilao_redemptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   auction_id UUID NOT NULL UNIQUE REFERENCES leilao_auctions(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES leilao_users(id) ON DELETE CASCADE,
-  payment_method TEXT NOT NULL,
-  address_line TEXT NOT NULL,
-  address_number TEXT NOT NULL,
+  payment_method TEXT,
+  payment_status TEXT NOT NULL DEFAULT 'pending',
+  payment_reference TEXT,
+  paid_at TIMESTAMPTZ,
+  address_line TEXT,
+  address_number TEXT,
   district TEXT,
-  city TEXT NOT NULL,
-  state TEXT NOT NULL,
-  zip_code TEXT NOT NULL,
+  city TEXT,
+  state TEXT,
+  zip_code TEXT,
   complement TEXT,
   map_query TEXT,
-  status TEXT NOT NULL DEFAULT 'requested',
+  status TEXT NOT NULL DEFAULT 'pending_address',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT leilao_redemptions_payment_method_chk CHECK (payment_method IN ('pix_simulado', 'deposito_simulado')),
-  CONSTRAINT leilao_redemptions_status_chk CHECK (status IN ('requested', 'confirmed', 'delivered'))
+  CONSTRAINT leilao_redemptions_payment_method_chk CHECK (payment_method IN ('pix_simulado', 'cartao_simulado', 'deposito_simulado')),
+  CONSTRAINT leilao_redemptions_payment_status_chk CHECK (payment_status IN ('pending', 'paid')),
+  CONSTRAINT leilao_redemptions_status_chk CHECK (status IN ('pending_address', 'requested', 'confirmed', 'delivered'))
 );
+
+ALTER TABLE leilao_redemptions
+ADD COLUMN IF NOT EXISTS payment_status TEXT NOT NULL DEFAULT 'pending';
+
+ALTER TABLE leilao_redemptions
+ADD COLUMN IF NOT EXISTS payment_reference TEXT;
+
+ALTER TABLE leilao_redemptions
+ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ;
+
+ALTER TABLE leilao_redemptions
+ALTER COLUMN payment_method DROP NOT NULL;
+
+ALTER TABLE leilao_redemptions
+ALTER COLUMN address_line DROP NOT NULL;
+
+ALTER TABLE leilao_redemptions
+ALTER COLUMN address_number DROP NOT NULL;
+
+ALTER TABLE leilao_redemptions
+ALTER COLUMN city DROP NOT NULL;
+
+ALTER TABLE leilao_redemptions
+ALTER COLUMN state DROP NOT NULL;
+
+ALTER TABLE leilao_redemptions
+ALTER COLUMN zip_code DROP NOT NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'leilao_redemptions_payment_status_chk'
+  ) THEN
+    ALTER TABLE leilao_redemptions
+    ADD CONSTRAINT leilao_redemptions_payment_status_chk CHECK (payment_status IN ('pending', 'paid'));
+  END IF;
+END $$;
+
+ALTER TABLE leilao_redemptions
+DROP CONSTRAINT IF EXISTS leilao_redemptions_status_chk;
+
+ALTER TABLE leilao_redemptions
+ADD CONSTRAINT leilao_redemptions_status_chk CHECK (status IN ('pending_address', 'requested', 'confirmed', 'delivered'));
+
+ALTER TABLE leilao_redemptions
+DROP CONSTRAINT IF EXISTS leilao_redemptions_payment_method_chk;
+
+ALTER TABLE leilao_redemptions
+ADD CONSTRAINT leilao_redemptions_payment_method_chk CHECK (payment_method IN ('pix_simulado', 'cartao_simulado', 'deposito_simulado'));
 
 CREATE INDEX IF NOT EXISTS leilao_auctions_status_ends_idx
 ON leilao_auctions (status, ends_at);

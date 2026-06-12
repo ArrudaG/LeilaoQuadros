@@ -21,6 +21,10 @@ function formatarMoney(value) {
   return Number(value || 0).toFixed(2);
 }
 
+function traduzirPagamento(status) {
+  return status === 'paid' ? 'Pago' : 'Pendente';
+}
+
 export default function AdminVencedoresScreen() {
   const { token } = useAutenticacao();
   const [carregando, setCarregando] = useState(false);
@@ -62,6 +66,7 @@ export default function AdminVencedoresScreen() {
               <Text style={styles.itemTitulo}>{item.title}</Text>
               <Text style={styles.itemInfo}>Vencedor: {vencedor}</Text>
               <Text style={styles.itemInfo}>Lance final: R$ {formatarMoney(item.winnerBid || 0)}</Text>
+              <Text style={styles.itemInfo}>Pagamento: {traduzirPagamento(item.paymentStatus)}</Text>
               <Text style={styles.itemInfo}>Encerrado: {formatarDataHora(item.endsAt)}</Text>
             </View>
           );

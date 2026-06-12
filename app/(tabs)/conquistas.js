@@ -18,7 +18,7 @@ import * as Location from 'expo-location';
 
 import { API_BASE_URL } from '../../src/auth/services/servico-api';
 import {
-  buscarCarteira,
+  confirmarPagamentoLeilao,
   confirmarRecebimentoItem,
   listarLeiloesVencidos,
   resgatarItemLeilao,
@@ -43,6 +43,7 @@ function money(value) {
 
 function traduzirStatusResgate(status) {
   const mapa = {
+    pending_address: 'aguardando endereco',
     requested: 'solicitado',
     confirmed: 'a caminho',
     delivered: 'entregue',
@@ -51,14 +52,29 @@ function traduzirStatusResgate(status) {
   return mapa[String(status || '').toLowerCase()] || 'pendente';
 }
 
+function traduzirPagamento(status) {
+  return status === 'paid' ? 'pago' : 'pendente';
+}
+
+function traduzirMetodoPagamento(method) {
+  const mapa = {
+    pix_simulado: 'PIX simulado',
+    cartao_simulado: 'Cartao simulado',
+    deposito_simulado: 'Deposito simulado',
+  };
+
+  return mapa[String(method || '').toLowerCase()] || 'Nao informado';
+}
+
 export default function TelaConquistas() {
   const { token } = useAutenticacao();
   const [carregando, setCarregando] = useState(false);
-  const [carteira, setCarteira] = useState({ walletBalance: 0, walletReserved: 0, walletAvailable: 0 });
   const [wins, setWins] = useState([]);
   const [resgateModal, setResgateModal] = useState(null);
+  const [etapaResgate, setEtapaResgate] = useState('payment');
+  const [paymentMethod, setPaymentMethod] = useState('pix_simulado');
+  const [pagando, setPagando] = useState(false);
   const [endereco, setEndereco] = useState({
-    paymentMethod: 'deposito_simulado',
     addressQuery: '',
     addressLine: '',
     addressNumber: '',
@@ -81,8 +97,7 @@ export default function TelaConquistas() {
 
     try {
       setCarregando(true);
-      const [walletRes, winsRes] = await Promise.all([buscarCarteira(token), listarLeiloesVencidos(token)]);
-      setCarteira(walletRes.wallet || { walletBalance: 0, walletReserved: 0, walletAvailable: 0 });
+      const winsRes = await listarLeiloesVencidos(token);
       setWins(winsRes.wins || []);
     } catch (error) {
       Alert.alert('Erro', error?.message || 'Nao foi possivel carregar conquistas.');
@@ -141,9 +156,10 @@ export default function TelaConquistas() {
 
   function abrirResgate(item) {
     setResgateModal(item);
+    setEtapaResgate(item.paymentStatus === 'paid' ? 'address' : 'payment');
+    setPaymentMethod(item.paymentMethod === 'cartao_simulado' ? 'cartao_simulado' : 'pix_simulado');
     setMapCoords(null);
     setEndereco({
-      paymentMethod: 'deposito_simulado',
       addressQuery: '',
       addressLine: '',
       addressNumber: '',
@@ -154,6 +170,33 @@ export default function TelaConquistas() {
       complement: '',
     });
     setSugestoesEndereco([]);
+  }
+
+  async function confirmarPagamento() {
+    if (!token || !resgateModal) {
+      return;
+    }
+
+    try {
+      setPagando(true);
+      const resposta = await confirmarPagamentoLeilao(token, resgateModal.id, paymentMethod);
+      const payment = resposta.payment || {};
+      setResgateModal((atual) => ({
+        ...atual,
+        paymentStatus: payment.paymentStatus || 'paid',
+        paymentMethod: payment.paymentMethod || paymentMethod,
+        paymentReference: payment.paymentReference,
+        paidAt: payment.paidAt,
+        redemptionStatus: atual?.redemptionStatus || 'pending_address',
+      }));
+      setEtapaResgate('address');
+      await carregar();
+      Alert.alert('Pagamento confirmado', 'Pagamento simulado registrado. Agora informe o endereco de entrega.');
+    } catch (error) {
+      Alert.alert('Erro', error?.message || 'Nao foi possivel confirmar o pagamento.');
+    } finally {
+      setPagando(false);
+    }
   }
 
   function selecionarSugestao(sugestao) {
@@ -389,12 +432,11 @@ export default function TelaConquistas() {
     try {
       await resgatarItemLeilao(token, resgateModal.id, {
         ...endereco,
-        paymentMethod: 'deposito_simulado',
         mapQuery: endereco.addressQuery,
       });
       setResgateModal(null);
       await carregar();
-      Alert.alert('Sucesso', 'Resgate solicitado com pagamento simulado registrado.');
+      Alert.alert('Sucesso', 'Endereco enviado. O resgate foi solicitado.');
     } catch (error) {
       Alert.alert('Erro', error?.message || 'Nao foi possivel solicitar resgate.');
     }
@@ -426,9 +468,7 @@ export default function TelaConquistas() {
       <View style={styles.card}>
         <Text style={styles.subtitulo}>Resumo</Text>
         <Text style={styles.info}>Leilões vencidos: {totalVitorias}</Text>
-        <Text style={styles.info}>Saldo: R$ {money(carteira.walletBalance)}</Text>
-        <Text style={styles.info}>Reservado: R$ {money(carteira.walletReserved)}</Text>
-        <Text style={styles.info}>Disponível: R$ {money(carteira.walletAvailable)}</Text>
+        <Text style={styles.info}>Pagamento: feito apenas após vencer o leilão</Text>
       </View>
 
       <View style={styles.card}>
@@ -438,11 +478,18 @@ export default function TelaConquistas() {
             {!!item.mediaUrl && <Image source={{ uri: montarUrlImagem(item.mediaUrl) }} style={styles.winImage} />}
             <Text style={styles.winTitulo}>{item.title}</Text>
             <Text style={styles.info}>Valor final: R$ {money(item.winnerBid)}</Text>
+            <Text style={styles.info}>Pagamento: {traduzirPagamento(item.paymentStatus)}</Text>
             <Text style={styles.info}>Resgate: {traduzirStatusResgate(item.redemptionStatus)}</Text>
 
-            {!item.redemptionStatus ? (
+            {item.paymentStatus !== 'paid' ? (
               <Pressable style={styles.botaoSecundario} onPress={() => abrirResgate(item)}>
-                <Text style={styles.textoBotao}>Resgatar item</Text>
+                <Text style={styles.textoBotao}>Pagar item</Text>
+              </Pressable>
+            ) : null}
+
+            {item.paymentStatus === 'paid' && (!item.redemptionStatus || item.redemptionStatus === 'pending_address') ? (
+              <Pressable style={styles.botaoSecundario} onPress={() => abrirResgate(item)}>
+                <Text style={styles.textoBotao}>Informar endereco</Text>
               </Pressable>
             ) : null}
 
@@ -461,9 +508,42 @@ export default function TelaConquistas() {
           <ScrollView style={styles.modal} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="always">
             <Text style={styles.subtitulo}>Resgatar item</Text>
             <Text style={styles.info}>Leilão: {resgateModal?.title}</Text>
-            <Text style={styles.info}>Pagamento: Depósito simulado</Text>
+            <Text style={styles.info}>Valor final: R$ {money(resgateModal?.winnerBid)}</Text>
+            <Text style={styles.info}>Pagamento: {traduzirPagamento(resgateModal?.paymentStatus)}</Text>
 
-            <TextInput
+            {etapaResgate === 'payment' ? (
+              <View style={styles.checkoutBox}>
+                <Text style={styles.labelCheckout}>Metodo de pagamento</Text>
+                <View style={styles.row}>
+                  <Pressable
+                    style={[styles.chip, paymentMethod === 'pix_simulado' ? styles.chipAtivo : null]}
+                    onPress={() => setPaymentMethod('pix_simulado')}
+                  >
+                    <Text style={[styles.chipTexto, paymentMethod === 'pix_simulado' ? styles.chipTextoAtivo : null]}>PIX</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[styles.chip, paymentMethod === 'cartao_simulado' ? styles.chipAtivo : null]}
+                    onPress={() => setPaymentMethod('cartao_simulado')}
+                  >
+                    <Text style={[styles.chipTexto, paymentMethod === 'cartao_simulado' ? styles.chipTextoAtivo : null]}>Cartao</Text>
+                  </Pressable>
+                </View>
+
+                <Text style={styles.info}>Metodo selecionado: {traduzirMetodoPagamento(paymentMethod)}</Text>
+
+                <Pressable style={styles.botao} onPress={confirmarPagamento} disabled={pagando}>
+                  <Text style={styles.textoBotao}>{pagando ? 'Confirmando...' : 'Confirmar pagamento simulado'}</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {etapaResgate === 'address' ? (
+              <>
+                <Text style={styles.info}>Metodo pago: {traduzirMetodoPagamento(resgateModal?.paymentMethod)}</Text>
+                {!!resgateModal?.paymentReference && <Text style={styles.info}>Referencia: {resgateModal.paymentReference}</Text>}
+
+                <TextInput
               style={styles.input}
               placeholder="Endereço completo"
               value={endereco.addressQuery}
@@ -522,8 +602,10 @@ export default function TelaConquistas() {
             )}
 
             <Pressable style={styles.botao} onPress={confirmarResgate}>
-              <Text style={styles.textoBotao}>Confirmar resgate</Text>
+              <Text style={styles.textoBotao}>Confirmar endereco e resgate</Text>
             </Pressable>
+              </>
+            ) : null}
 
             <Pressable style={styles.botaoFechar} onPress={() => setResgateModal(null)}>
               <Text style={styles.textoBotao}>Fechar</Text>
@@ -566,6 +648,19 @@ const styles = StyleSheet.create({
   info: {
     color: '#334155',
     fontSize: 13,
+  },
+  checkoutBox: {
+    backgroundColor: '#eef6ff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#cfe2ff',
+    padding: 10,
+    gap: 8,
+  },
+  labelCheckout: {
+    color: '#0f172a',
+    fontSize: 13,
+    fontWeight: '700',
   },
   input: {
     borderWidth: 1,

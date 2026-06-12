@@ -1,6 +1,6 @@
 import { Link, router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View, Keyboard } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View, Keyboard } from 'react-native';
 
 import { IconeSimbolo } from '@/components/ui/icone-simbolo';
 import { BotaoAutenticacao } from '@/src/auth/components/botao-autenticacao';
@@ -8,7 +8,7 @@ import { EntradaAutenticacao } from '@/src/auth/components/entrada-autenticacao'
 import { useAutenticacao } from '@/src/auth/context/contexto-autenticacao';
 
 export default function TelaLogin() {
-  const { fazerLogin, entrarComBiometria, podeMostrarBiometria, usuario } = useAutenticacao();
+  const { fazerLogin, entrarComBiometria, podeMostrarBiometria, usuario, carregando: carregandoSessao } = useAutenticacao();
   const [cpf, setCpf] = useState('');
   const [senha, setSenha] = useState('');
   const [carregando, setCarregando] = useState(false);
@@ -48,6 +48,14 @@ export default function TelaLogin() {
     }
   }
 
+  if (carregandoSessao) {
+    return (
+      <View style={styles.caixaPrincipal}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.caixaPrincipal}>
       <Pressable style={styles.botaoAdmin} onPress={() => router.push('/admin-login')}>
@@ -62,6 +70,7 @@ export default function TelaLogin() {
         onChangeText={setCpf}
         placeholder="Somente numeros"
         keyboardType="number-pad"
+        returnKeyType="next"
       />
 
       <EntradaAutenticacao
@@ -70,6 +79,7 @@ export default function TelaLogin() {
         onChangeText={setSenha}
         placeholder="Sua senha"
         secureTextEntry
+        returnKeyType="done"
       />
 
       <BotaoAutenticacao title="Entrar" onPress={() => {

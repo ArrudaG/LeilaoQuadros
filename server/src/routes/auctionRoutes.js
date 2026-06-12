@@ -15,7 +15,7 @@ const depositSchema = z.object({
 });
 
 const redeemSchema = z.object({
-  paymentMethod: z.enum(['pix_simulado', 'deposito_simulado']).optional().default('deposito_simulado'),
+  paymentMethod: z.enum(['pix_simulado', 'cartao_simulado', 'deposito_simulado']).optional(),
   addressQuery: z.string().trim().optional().default(''),
   addressLine: z.string().trim().optional().default(''),
   addressNumber: z.string().trim().optional().default(''),
@@ -25,6 +25,10 @@ const redeemSchema = z.object({
   zipCode: z.string().trim().optional().default(''),
   complement: z.string().trim().optional().default(''),
   mapQuery: z.string().trim().optional().default(''),
+});
+
+const paymentSchema = z.object({
+  paymentMethod: z.enum(['pix_simulado', 'cartao_simulado']).optional().default('pix_simulado'),
 });
 
 function mapAuction(row) {
@@ -41,6 +45,7 @@ function mapAuction(row) {
     status: row.status,
     winnerUserId: row.winner_user_id,
     winnerBid: row.winner_bid != null ? Number(row.winner_bid) : null,
+    highestBidderUserId: row.highest_bidder_user_id,
     participantsCount: Number(row.participants_count || 0),
     bidsCount: Number(row.bids_count || 0),
   };
@@ -150,6 +155,10 @@ auctionRoutes.get('/wins', async (req, res) => {
          a.ends_at AS "endedAt",
          r.id AS "redemptionId",
          r.status AS "redemptionStatus",
+         r.payment_status AS "paymentStatus",
+         r.payment_method AS "paymentMethod",
+         r.payment_reference AS "paymentReference",
+         r.paid_at AS "paidAt",
          r.created_at AS "redemptionCreatedAt"
        FROM leilao_auctions a
        LEFT JOIN leilao_redemptions r ON r.auction_id = a.id AND r.user_id = $1
@@ -168,6 +177,74 @@ auctionRoutes.get('/wins', async (req, res) => {
     });
   } catch {
     return res.status(500).json({ message: 'Erro ao listar leilões vencidos.' });
+  }
+});
+
+auctionRoutes.post('/:auctionId/payment', async (req, res) => {
+  const parsed = paymentSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    return res.status(400).json({
+      message: 'Dados invÃ¡lidos.',
+      errors: parsed.error.flatten().fieldErrors,
+    });
+  }
+
+  const { paymentMethod } = parsed.data;
+
+  try {
+    const winner = await pool.query(
+      `SELECT id, winner_bid
+       FROM leilao_auctions
+       WHERE id = $1 AND status = 'closed' AND winner_user_id = $2`,
+      [req.params.auctionId, req.user.sub],
+    );
+
+    if (winner.rowCount === 0) {
+      return res.status(403).json({ message: 'Pagamento permitido apenas para vencedor de leilÃ£o encerrado.' });
+    }
+
+    const reference = `PAY-${Date.now()}-${String(req.user.sub).slice(0, 8)}`;
+    const paid = await pool.query(
+      `INSERT INTO leilao_redemptions (
+         auction_id,
+         user_id,
+         payment_method,
+         payment_status,
+         payment_reference,
+         paid_at,
+         status
+       ) VALUES ($1, $2, $3, 'paid', $4, NOW(), 'pending_address')
+       ON CONFLICT (auction_id)
+       DO UPDATE SET
+         payment_method = EXCLUDED.payment_method,
+         payment_status = 'paid',
+         payment_reference = EXCLUDED.payment_reference,
+         paid_at = NOW(),
+         status = CASE
+           WHEN leilao_redemptions.status = 'pending_address' THEN 'pending_address'
+           ELSE leilao_redemptions.status
+         END
+       RETURNING
+         id,
+         auction_id AS "auctionId",
+         user_id AS "userId",
+         payment_method AS "paymentMethod",
+         payment_status AS "paymentStatus",
+         payment_reference AS "paymentReference",
+         paid_at AS "paidAt",
+         status`,
+      [req.params.auctionId, req.user.sub, paymentMethod, reference],
+    );
+
+    return res.status(201).json({
+      payment: {
+        ...paid.rows[0],
+        amount: Number(winner.rows[0].winner_bid || 0),
+      },
+    });
+  } catch {
+    return res.status(500).json({ message: 'Erro ao registrar pagamento simulado.' });
   }
 });
 
@@ -194,14 +271,22 @@ auctionRoutes.post('/:auctionId/redeem', async (req, res) => {
 
   try {
     const winner = await pool.query(
-      `SELECT id
-       FROM leilao_auctions
-       WHERE id = $1 AND status = 'closed' AND winner_user_id = $2`,
+      `SELECT
+         a.id,
+         r.payment_status,
+         r.payment_method
+       FROM leilao_auctions a
+       LEFT JOIN leilao_redemptions r ON r.auction_id = a.id AND r.user_id = $2
+       WHERE a.id = $1 AND a.status = 'closed' AND a.winner_user_id = $2`,
       [req.params.auctionId, req.user.sub],
     );
 
     if (winner.rowCount === 0) {
       return res.status(403).json({ message: 'Resgate permitido apenas para vencedor de leilão encerrado.' });
+    }
+
+    if (winner.rows[0].payment_status !== 'paid') {
+      return res.status(400).json({ message: 'Confirme o pagamento simulado antes de informar o endereÃ§o.' });
     }
 
     const created = await pool.query(
@@ -221,7 +306,7 @@ auctionRoutes.post('/:auctionId/redeem', async (req, res) => {
        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'requested')
        ON CONFLICT (auction_id)
        DO UPDATE SET
-         payment_method = EXCLUDED.payment_method,
+         payment_method = COALESCE(leilao_redemptions.payment_method, EXCLUDED.payment_method),
          address_line = EXCLUDED.address_line,
          address_number = EXCLUDED.address_number,
          district = EXCLUDED.district,
@@ -235,6 +320,9 @@ auctionRoutes.post('/:auctionId/redeem', async (req, res) => {
          id,
          auction_id AS "auctionId",
          payment_method AS "paymentMethod",
+         payment_status AS "paymentStatus",
+         payment_reference AS "paymentReference",
+         paid_at AS "paidAt",
          address_line AS "addressLine",
          address_number AS "addressNumber",
          district,
@@ -248,7 +336,7 @@ auctionRoutes.post('/:auctionId/redeem', async (req, res) => {
       [
         req.params.auctionId,
         req.user.sub,
-        data.paymentMethod,
+        winner.rows[0].payment_method || data.paymentMethod || 'pix_simulado',
         enderecoLinha,
         numero,
         bairro || null,
@@ -441,13 +529,7 @@ auctionRoutes.post('/:auctionId/bids', async (req, res) => {
     }
 
     const auction = found.rows[0];
-    const bidder = await client.query(
-      `SELECT wallet_balance, wallet_reserved
-       FROM leilao_users
-       WHERE id = $1
-       FOR UPDATE`,
-      [req.user.sub],
-    );
+    const bidder = await client.query('SELECT id FROM leilao_users WHERE id = $1', [req.user.sub]);
 
     if (bidder.rowCount === 0) {
       await client.query('ROLLBACK');
@@ -485,12 +567,16 @@ auctionRoutes.post('/:auctionId/bids', async (req, res) => {
     }
 
     const previousHighestBidderId = auction.highest_bidder_user_id;
-    const previousHighestAmount = previousHighestBidderId ? Number(auction.current_bid || 0) : 0;
-    const bidderBalance = Number(bidder.rows[0].wallet_balance || 0);
-    const bidderReserved = Number(bidder.rows[0].wallet_reserved || 0);
-    const bidderAvailable = bidderBalance - bidderReserved;
+    const usaCarteiraParaLance = false;
+    const previousHighestAmount = 0;
+    const bidderAvailable = Number.POSITIVE_INFINITY;
 
-    if (previousHighestBidderId === req.user.sub) {
+    if (previousHighestBidderId && String(previousHighestBidderId) === String(req.user.sub)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ message: 'Aguarde outro participante dar lance antes de ofertar novamente.' });
+    }
+
+    if (usaCarteiraParaLance && previousHighestBidderId === req.user.sub) {
       const additionalReserve = amount - previousHighestAmount;
 
       if (additionalReserve > 0 && bidderAvailable < additionalReserve) {
@@ -512,7 +598,7 @@ auctionRoutes.post('/:auctionId/bids', async (req, res) => {
           [req.user.sub, auction.id, additionalReserve],
         );
       }
-    } else {
+    } else if (usaCarteiraParaLance) {
       if (bidderAvailable < amount) {
         await client.query('ROLLBACK');
         return res.status(400).json({ message: 'Saldo simulado insuficiente para este lance.' });

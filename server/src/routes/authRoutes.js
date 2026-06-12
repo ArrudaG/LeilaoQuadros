@@ -294,15 +294,15 @@ authRoutes.patch('/profile', authMiddleware, async (req, res) => {
     });
   }
 
-  const { firstName, lastName, email, phone, birthDate } = parsed.data;
+  const { firstName, lastName, email, phone } = parsed.data;
 
   try {
     const updated = await pool.query(
       `UPDATE leilao_users
-       SET first_name = $1, last_name = $2, email = $3, phone = $4, birth_date = $5, updated_at = NOW()
-       WHERE id = $6
+       SET first_name = $1, last_name = $2, email = $3, phone = $4, updated_at = NOW()
+       WHERE id = $5
       RETURNING id, cpf, user_role, email, birth_date, phone, first_name, last_name, profile_image_url, biometric_enabled`,
-      [firstName, lastName, email, phone, birthDate, req.user.sub],
+      [firstName, lastName, email, phone, req.user.sub],
     );
 
     if (updated.rowCount === 0) {
