@@ -1,0 +1,15 @@
+appId: com.leilaomania.app
+---
+- launchApp:
+    clearState: true
+- tapOn: "Somente numeros"
+- inputText: "33333333333"
+- tapOn: "Sua senha"
+- inputText: "1234qwer"
+- hideKeyboard
+- tapOn: "Entrar"
+- tapOn: "Leilões"
+- tapOn: "Status: Ao vivo"
+- tapOn: "Participar com esse valor"
+- tapOn: "OK"
+- tapOn: "Fechar"
