@@ -1,0 +1,33 @@
+appId: com.leilaomania.app
+---
+- launchApp:
+    clearState: true
+- tapOn: "Não tem conta? Cadastre-se"
+- tapOn: "Seu nome"
+- inputText: "Gabriel"
+- hideKeyboard
+- tapOn: "Seu sobrenome"
+- inputText: "Arruda"
+- hideKeyboard
+- tapOn: "Somente números"
+- inputText: "12345678901"
+- hideKeyboard
+- tapOn: "seuemail@dominio.com"
+- inputText: "gabriel.teste@teste.com"
+- hideKeyboard
+- tapOn: "Seu telefone"
+- inputText: "21999999999"
+- hideKeyboard
+- tapOn: "DD/MM/AAAA"
+- tapOn: "1"
+- tapOn: "OK"
+- tapOn: "Crie uma senha"
+- inputText: "123456"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      text: "Cadastrar"
+- tapOn: "Repita a sua senha"
+- inputText: "123456"
+- hideKeyboard
+- tapOn: "Cadastrar"
