@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { IconeSimbolo } from '@/components/ui/icone-simbolo';
 import { useAutenticacao } from '../../src/auth/context/contexto-autenticacao';
 import { listarLeiloesAdmin, listarResgatesAdmin, listarVencedoresAdmin } from '../../src/auth/services/servico-admin';
 
@@ -64,16 +65,22 @@ export default function AdminResumoScreen() {
       refreshControl={<RefreshControl refreshing={carregando} onRefresh={carregar} />}
     >
       <View style={styles.hero}>
+        <View style={styles.heroIcone}>
+          <IconeSimbolo name="shield.fill" color="#2457d6" size={28} />
+        </View>
+        <Text style={styles.eyebrow}>Painel administrativo</Text>
         <Text style={styles.titulo}>Admin Leilões</Text>
-        <Text style={styles.subtitulo}>Uma tela de controle rápida para acompanhar operação e acionar fluxos.</Text>
+        <Text style={styles.subtitulo}>Controle leilões ativos, vencedores e resgates em poucos toques.</Text>
       </View>
 
       <View style={styles.kpiRow}>
         <View style={styles.kpiCard}>
+          <IconeSimbolo name="gavel.fill" color="#2563eb" size={23} />
           <Text style={styles.kpiLabel}>Leilões</Text>
           <Text style={styles.kpiValue}>{metricas.leiloes}</Text>
         </View>
         <View style={styles.kpiCard}>
+          <IconeSimbolo name="trophy.fill" color="#16a34a" size={23} />
           <Text style={styles.kpiLabel}>Vencedores</Text>
           <Text style={styles.kpiValue}>{metricas.vencedores}</Text>
         </View>
@@ -101,15 +108,18 @@ export default function AdminResumoScreen() {
         <Text style={styles.cardTitulo}>Atalhos</Text>
         <View style={styles.atalhosRow}>
           <Pressable style={styles.atalho} onPress={() => router.push('/admin/leiloes')}>
+            <IconeSimbolo name="gavel.fill" color="#fff" size={19} />
             <Text style={styles.atalhoTexto}>Gerenciar leilões</Text>
           </Pressable>
           <Pressable style={styles.atalho} onPress={() => router.push('/admin/resgates')}>
+            <IconeSimbolo name="shippingbox.fill" color="#fff" size={19} />
             <Text style={styles.atalhoTexto}>Fluxo de resgates</Text>
           </Pressable>
         </View>
       </View>
 
       <Pressable style={styles.botaoSair} onPress={sairPainelAdmin}>
+        <IconeSimbolo name="logout" color="#fff" size={19} />
         <Text style={styles.botaoSairTexto}>Sair da conta admin</Text>
       </Pressable>
     </ScrollView>
@@ -119,25 +129,45 @@ export default function AdminResumoScreen() {
 const styles = StyleSheet.create({
   tela: {
     flex: 1,
-    backgroundColor: '#eef3ff',
+    backgroundColor: '#f4f7fb',
   },
   conteudo: {
-    padding: 14,
-    gap: 12,
-    paddingBottom: 28,
+    padding: 16,
+    gap: 14,
+    paddingTop: 18,
+    paddingBottom: 24,
   },
   hero: {
-    backgroundColor: '#0b1222',
-    borderRadius: 18,
-    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 18,
+    minHeight: 168,
+    justifyContent: 'flex-end',
+    borderWidth: 1,
+    borderColor: '#d8dee9',
+  },
+  heroIcone: {
+    width: 52,
+    height: 52,
+    borderRadius: 8,
+    backgroundColor: '#e8f0ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  eyebrow: {
+    color: '#38bdf8',
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
   },
   titulo: {
-    color: '#f8fafc',
+    color: '#101828',
     fontSize: 26,
     fontWeight: '800',
   },
   subtitulo: {
-    color: '#c7d3ee',
+    color: '#667085',
     marginTop: 6,
     fontSize: 14,
   },
@@ -148,10 +178,11 @@ const styles = StyleSheet.create({
   kpiCard: {
     flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#dbe4ff',
+    borderColor: '#d8dee9',
     padding: 12,
+    gap: 5,
   },
   kpiLabel: {
     color: '#475569',
@@ -166,9 +197,9 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#dbe4ff',
+    borderColor: '#d8dee9',
     padding: 12,
     gap: 10,
   },
@@ -183,7 +214,7 @@ const styles = StyleSheet.create({
   },
   badgeBox: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 8,
     backgroundColor: '#f3f7ff',
     borderWidth: 1,
     borderColor: '#d8e2ff',
@@ -206,10 +237,13 @@ const styles = StyleSheet.create({
   },
   atalho: {
     flex: 1,
-    backgroundColor: '#1d4ed8',
-    borderRadius: 12,
+    backgroundColor: '#2457d6',
+    borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 7,
   },
   atalhoTexto: {
     color: '#fff',
@@ -218,9 +252,12 @@ const styles = StyleSheet.create({
   botaoSair: {
     marginTop: 6,
     backgroundColor: '#b91c1c',
-    borderRadius: 12,
+    borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 7,
   },
   botaoSairTexto: {
     color: '#fff',

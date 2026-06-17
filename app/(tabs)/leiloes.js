@@ -13,13 +13,15 @@ import {
   View,
 } from 'react-native';
 
+import { IconeSimbolo } from '@/components/ui/icone-simbolo';
+import { CartaoLeilao, EstadoVazio, HeroLeilao, PillStatus } from '@/components/ui/leilao-design';
 import { useAutenticacao } from '../../src/auth/context/contexto-autenticacao';
 import { API_BASE_URL } from '../../src/auth/services/servico-api';
 import { buscarDetalheLeilao, enviarLance, listarLeiloes } from '../../src/auth/services/servico-leilao';
 
 const filtrosStatus = ['active', 'scheduled', 'closed', 'cancelled'];
 const statusLabel = {
-  active: 'Ao vivo',
+  active: 'Ativo',
   scheduled: 'Agendados',
   closed: 'Encerrados',
   cancelled: 'Cancelados',
@@ -58,6 +60,41 @@ function formatarData(valor) {
   return data.toLocaleString('pt-BR');
 }
 
+function nomeLider(leilao) {
+  return leilao?.highestBidderName || [leilao?.highestBidderFirstName, leilao?.highestBidderLastName].filter(Boolean).join(' ') || 'Sem lances';
+}
+
+function situacaoUsuario(leilao, usuarioId) {
+  if (!leilao?.highestBidderUserId) {
+    return 'Aberto para o primeiro lance';
+  }
+
+  if (String(leilao.highestBidderUserId) === String(usuarioId || '')) {
+  return 'Você lidera este item';
+  }
+
+  return 'Você não está ganhando';
+}
+
+function tempoRestante(endsAt) {
+  const fim = new Date(endsAt).getTime();
+  const diff = fim - Date.now();
+
+  if (!Number.isFinite(fim) || diff <= 0) {
+    return 'Encerrando';
+  }
+
+  const minutos = Math.floor(diff / 60000);
+  const segundos = Math.floor((diff % 60000) / 1000);
+
+  if (minutos >= 60) {
+    const horas = Math.floor(minutos / 60);
+    return `${horas}h ${minutos % 60}m`;
+  }
+
+  return `${minutos}m ${String(segundos).padStart(2, '0')}s`;
+}
+
 export default function TelaLeiloes() {
   const { token, usuario } = useAutenticacao();
   const [statusAtivo, setStatusAtivo] = useState('active');
@@ -78,7 +115,7 @@ export default function TelaLeiloes() {
       const resposta = await listarLeiloes(token, status);
       setLeiloes(resposta.auctions || []);
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Nao foi possivel carregar os leiloes.');
+      Alert.alert('Erro', error?.message || 'Não foi possível carregar os leilões.');
     } finally {
       setCarregando(false);
     }
@@ -104,7 +141,7 @@ export default function TelaLeiloes() {
       );
       setValorLance(String(minimo.toFixed(2)));
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Nao foi possivel abrir o detalhe do leilao.');
+      Alert.alert('Erro', error?.message || 'Não foi possível abrir o detalhe do leilão.');
     } finally {
       setCarregandoDetalhe(false);
     }
@@ -121,6 +158,11 @@ export default function TelaLeiloes() {
     return Math.max(atual + incremento, inicial);
   }, [detalheLeilao]);
 
+  const usuarioAtualLidera = useMemo(() => {
+    const liderId = detalheLeilao?.auction?.highestBidderUserId;
+    return Boolean(liderId) && String(liderId) === String(usuario?.id || '');
+  }, [detalheLeilao?.auction?.highestBidderUserId, usuario?.id]);
+
   const podeLancar = useMemo(() => {
     if (!detalheLeilao?.auction) {
       return false;
@@ -130,14 +172,8 @@ export default function TelaLeiloes() {
     const agora = Date.now();
     const inicio = new Date(leilao.startsAt).getTime();
     const fim = new Date(leilao.endsAt).getTime();
-    const usuarioAtualLidera = String(leilao.highestBidderUserId || '') === String(usuario?.id || '');
     return leilao.status === 'active' && agora >= inicio && agora < fim && !usuarioAtualLidera;
-  }, [detalheLeilao, usuario?.id]);
-
-  const usuarioAtualLidera = useMemo(() => {
-    const liderId = detalheLeilao?.auction?.highestBidderUserId;
-    return Boolean(liderId) && String(liderId) === String(usuario?.id || '');
-  }, [detalheLeilao?.auction?.highestBidderUserId, usuario?.id]);
+  }, [detalheLeilao, usuarioAtualLidera]);
 
   async function confirmarLance() {
     if (!token || !detalheLeilao?.auction) {
@@ -147,17 +183,17 @@ export default function TelaLeiloes() {
     const amount = Number(valorLance);
 
     if (!Number.isFinite(amount) || amount <= 0) {
-      Alert.alert('Lance invalido', 'Informe um valor valido.');
+      Alert.alert('Lance inválido', 'Informe um valor válido.');
       return;
     }
 
     if (amount < lanceMinimo) {
-      Alert.alert('Lance invalido', `O valor minimo para esse leilao e R$ ${lanceMinimo.toFixed(2)}.`);
+      Alert.alert('Lance inválido', `O valor mínimo para esse leilão é R$ ${lanceMinimo.toFixed(2)}.`);
       return;
     }
 
     if (usuarioAtualLidera) {
-      Alert.alert('Aguarde outro lance', 'Voce ja tem o maior lance neste leilao.');
+      Alert.alert('Aguarde outro lance', 'Você já tem o maior lance neste leilão.');
       return;
     }
 
@@ -170,7 +206,7 @@ export default function TelaLeiloes() {
       await abrirStory(auctionAtualizado.id);
       Alert.alert('Sucesso', 'Lance enviado com sucesso.');
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Nao foi possivel enviar o lance.');
+      Alert.alert('Erro', error?.message || 'Não foi possível enviar o lance.');
     } finally {
       setEnviandoLance(false);
     }
@@ -178,24 +214,44 @@ export default function TelaLeiloes() {
 
   function renderLeilao({ item }) {
     const imagem = montarUrlImagem(item.mediaUrl);
+    const situacao = situacaoUsuario(item, usuario?.id);
+    const perdendo = situacao.includes('nao');
 
     return (
-      <Pressable style={styles.card} onPress={() => abrirStory(item.id)}>
+      <CartaoLeilao style={styles.card} delay={40}>
+        <Pressable style={styles.cardPress} onPress={() => abrirStory(item.id)}>
         {imagem ? <Image source={{ uri: imagem }} style={styles.cardImagem} /> : <View style={[styles.cardImagem, styles.semImagem]} />}
 
         <View style={styles.cardTexto}>
-          <Text style={styles.cardTitulo}>{item.title}</Text>
-          <Text style={styles.cardMeta}>Status: {traduzirStatus(item.status)}</Text>
-          <Text style={styles.cardMeta}>Atual: R$ {formatarMoeda(item.currentBid)}</Text>
-          <Text style={styles.cardMeta}>Participantes: {item.participantsCount}</Text>
+          <View style={styles.cardCabecalho}>
+            <Text style={styles.cardTitulo} numberOfLines={1}>{item.title}</Text>
+            <PillStatus tone={item.status === 'active' ? 'blue' : 'dark'}>{traduzirStatus(item.status)}</PillStatus>
+          </View>
+
+          <Text style={styles.valorAtual}>R$ {formatarMoeda(item.currentBid)}</Text>
+          <Text style={styles.cardMeta}>Vencedor momentâneo: {nomeLider(item)}</Text>
+
+          <View style={styles.cardRodape}>
+            <Text style={[styles.situacao, perdendo ? styles.situacaoPerdendo : styles.situacaoOk]}>{situacao}</Text>
+            <Text style={styles.tempo}>{item.status === 'active' ? tempoRestante(item.endsAt) : formatarData(item.endsAt)}</Text>
+          </View>
         </View>
-      </Pressable>
+        </Pressable>
+      </CartaoLeilao>
     );
   }
 
   return (
     <View style={styles.tela}>
-      <Text style={styles.titulo}>Leilões</Text>
+      <View style={styles.topo}>
+        <HeroLeilao
+          eyebrow="Sala de disputa"
+          title="Leilões"
+          subtitle="Filtre por status, abra o item e acompanhe os lances recentes antes de ofertar."
+          icon="gavel.fill"
+          accent="#2457d6"
+        />
+      </View>
 
       <View style={styles.filtros}>
         {filtrosStatus.map((status) => (
@@ -215,7 +271,7 @@ export default function TelaLeiloes() {
         renderItem={renderLeilao}
         refreshControl={<RefreshControl refreshing={carregando} onRefresh={() => carregarLeiloes(statusAtivo)} />}
         contentContainerStyle={styles.lista}
-        ListEmptyComponent={<Text style={styles.vazio}>Não há leilões nesta categoria.</Text>}
+        ListEmptyComponent={<EstadoVazio icon="timer" title="Nada por aqui" text="Não há leilões nesta categoria." />}
       />
 
       <Modal
@@ -241,11 +297,31 @@ export default function TelaLeiloes() {
                   </View>
                 )}
 
-                <Text style={styles.storyInfo}>Status: {traduzirStatus(detalheLeilao?.auction?.status)}</Text>
-                <Text style={styles.storyInfo}>Atual: R$ {formatarMoeda(detalheLeilao?.auction?.currentBid)}</Text>
-                <Text style={styles.storyInfo}>Mínimo: R$ {formatarMoeda(lanceMinimo)}</Text>
-                <Text style={styles.storyInfo}>Início: {formatarData(detalheLeilao?.auction?.startsAt)}</Text>
-                <Text style={styles.storyInfo}>Fim: {formatarData(detalheLeilao?.auction?.endsAt)}</Text>
+                <View style={styles.painelLider}>
+                  <View>
+                    <Text style={styles.painelLabel}>Vencedor momentâneo</Text>
+                    <Text style={styles.painelNome}>{nomeLider(detalheLeilao?.auction)}</Text>
+                  </View>
+                  <Text style={styles.painelValor}>R$ {formatarMoeda(detalheLeilao?.auction?.currentBid)}</Text>
+                </View>
+
+                <View style={styles.infoGrade}>
+                  <Text style={styles.storyInfo}>Status: {traduzirStatus(detalheLeilao?.auction?.status)}</Text>
+                  <Text style={styles.storyInfo}>Mínimo: R$ {formatarMoeda(lanceMinimo)}</Text>
+                  <Text style={styles.storyInfo}>Início: {formatarData(detalheLeilao?.auction?.startsAt)}</Text>
+                  <Text style={styles.storyInfo}>Fim: {formatarData(detalheLeilao?.auction?.endsAt)}</Text>
+                </View>
+
+                <View style={styles.lancesRecentes}>
+                  <Text style={styles.lancesTitulo}>Últimos lances</Text>
+                  {(detalheLeilao?.recentBids || []).slice(0, 4).map((bid) => (
+                    <View key={bid.id} style={styles.lanceLinha}>
+                      <Text style={styles.lanceNome}>{[bid.firstName, bid.lastName].filter(Boolean).join(' ') || 'Participante'}</Text>
+                      <Text style={styles.lanceValor}>R$ {formatarMoeda(bid.amount)}</Text>
+                    </View>
+                  ))}
+                  {!detalheLeilao?.recentBids?.length ? <Text style={styles.lanceVazio}>Ainda não houve lances.</Text> : null}
+                </View>
 
                 <TextInput
                   style={styles.inputLance}
@@ -262,17 +338,18 @@ export default function TelaLeiloes() {
                     disabled={!podeLancar || enviandoLance}
                     onPress={confirmarLance}
                   >
-                    <Text style={styles.textoBotao}>{enviandoLance ? 'Enviando...' : 'Participar com esse valor'}</Text>
+                    <IconeSimbolo name="gavel.fill" color="#fff" size={18} />
+                    <Text style={styles.textoBotao}>{enviandoLance ? 'Enviando...' : 'Dar lance'}</Text>
                   </Pressable>
 
                   <Pressable style={styles.botaoFechar} onPress={() => setDetalheLeilao(null)}>
-                    <Text style={styles.textoBotao}>Fechar</Text>
+                    <IconeSimbolo name="xmark" color="#fff" size={18} />
                   </Pressable>
                 </View>
 
                 {!podeLancar ? (
                   <Text style={styles.aviso}>
-                    {usuarioAtualLidera ? 'Voce ja lidera este leilao. Aguarde outro participante.' : 'Esse leilão não esta apto para receber lances agora.'}
+                    {usuarioAtualLidera ? 'Você já lidera este leilão. Aguarde outro participante.' : 'Esse leilão não está apto para receber lances agora.'}
                   </Text>
                 ) : null}
               </>
@@ -287,35 +364,45 @@ export default function TelaLeiloes() {
 const styles = StyleSheet.create({
   tela: {
     flex: 1,
-    backgroundColor: '#f8fafc',
-    paddingTop: 20,
+    backgroundColor: '#f4f7fb',
+  },
+  topo: {
+    paddingTop: 18,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
   titulo: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 30,
+    fontWeight: '900',
     color: '#0f172a',
-    paddingHorizontal: 16,
-    marginBottom: 10,
+  },
+  subtitulo: {
+    color: '#64748b',
+    fontSize: 13,
+    marginTop: 3,
   },
   filtros: {
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 16,
-    marginBottom: 8,
+    marginBottom: 10,
     flexWrap: 'wrap',
   },
   filtro: {
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#fff',
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#d8dee9',
   },
   filtroAtivo: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#0b1020',
+    borderColor: '#0b1020',
   },
   filtroTexto: {
     color: '#0f172a',
-    fontWeight: '700',
+    fontWeight: '800',
     fontSize: 12,
   },
   filtroTextoAtivo: {
@@ -323,36 +410,85 @@ const styles = StyleSheet.create({
   },
   lista: {
     paddingHorizontal: 16,
-    paddingBottom: 30,
-    gap: 10,
+    paddingBottom: 24,
+    gap: 12,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+  },
+  cardPress: {
+    overflow: 'hidden',
   },
   cardImagem: {
     width: '100%',
-    height: 160,
-    backgroundColor: '#cbd5e1',
+    height: 190,
+    backgroundColor: '#d8dee9',
   },
   semImagem: {
     backgroundColor: '#cbd5e1',
   },
   cardTexto: {
-    padding: 12,
-    gap: 4,
+    padding: 14,
+    gap: 9,
+  },
+  cardCabecalho: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   cardTitulo: {
     color: '#0f172a',
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 17,
+    fontWeight: '900',
+    flex: 1,
+  },
+  statusPill: {
+    color: '#075985',
+    backgroundColor: '#e0f2fe',
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    overflow: 'hidden',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  valorAtual: {
+    color: '#2457d6',
+    fontSize: 25,
+    fontWeight: '900',
   },
   cardMeta: {
+    color: '#475569',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  cardRodape: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  situacao: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    overflow: 'hidden',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  situacaoOk: {
+    color: '#047857',
+    backgroundColor: '#dff7ea',
+  },
+  situacaoPerdendo: {
+    color: '#b45309',
+    backgroundColor: '#fff4d6',
+  },
+  tempo: {
     color: '#334155',
-    fontSize: 13,
+    fontSize: 12,
+    fontWeight: '800',
   },
   vazio: {
     color: '#64748b',
@@ -361,20 +497,21 @@ const styles = StyleSheet.create({
   },
   storyOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(2,6,23,0.84)',
-    justifyContent: 'center',
-    padding: 14,
+    backgroundColor: 'rgba(5,10,24,0.88)',
+    justifyContent: 'flex-end',
   },
   storyCard: {
-    backgroundColor: '#0f172a',
-    borderRadius: 16,
+    backgroundColor: '#0b1020',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
     overflow: 'hidden',
-    padding: 12,
-    gap: 8,
+    padding: 14,
+    gap: 10,
+    maxHeight: '94%',
   },
   storyImagem: {
     height: 250,
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: 'hidden',
     justifyContent: 'flex-end',
     padding: 12,
@@ -387,21 +524,84 @@ const styles = StyleSheet.create({
   storyTitulo: {
     color: '#fff',
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '900',
     zIndex: 1,
+  },
+  painelLider: {
+    backgroundColor: '#121a2f',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  painelLabel: {
+    color: '#94a3b8',
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  painelNome: {
+    color: '#f8fafc',
+    fontWeight: '900',
+    fontSize: 16,
+    marginTop: 3,
+  },
+  painelValor: {
+    color: '#38bdf8',
+    fontWeight: '900',
+    fontSize: 18,
+    alignSelf: 'center',
+  },
+  infoGrade: {
+    gap: 3,
   },
   storyInfo: {
     color: '#cbd5e1',
+    fontSize: 12,
+  },
+  lancesRecentes: {
+    backgroundColor: '#121a2f',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+    padding: 10,
+    gap: 6,
+  },
+  lancesTitulo: {
+    color: '#f8fafc',
     fontSize: 13,
+    fontWeight: '900',
+  },
+  lanceLinha: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  lanceNome: {
+    color: '#cbd5e1',
+    fontSize: 12,
+    flex: 1,
+  },
+  lanceValor: {
+    color: '#f8fafc',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  lanceVazio: {
+    color: '#94a3b8',
+    fontSize: 12,
   },
   inputLance: {
     borderWidth: 1,
     borderColor: '#334155',
-    borderRadius: 10,
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 10,
     color: '#f8fafc',
-    backgroundColor: '#111827',
+    backgroundColor: '#121a2f',
   },
   linhaBotoes: {
     flexDirection: 'row',
@@ -409,24 +609,27 @@ const styles = StyleSheet.create({
   },
   botaoLance: {
     flex: 1,
-    backgroundColor: '#0284c7',
-    borderRadius: 10,
+    backgroundColor: '#2457d6',
+    borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
   },
   botaoFechar: {
+    width: 48,
     backgroundColor: '#475569',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   botaoDesabilitado: {
     opacity: 0.5,
   },
   textoBotao: {
     color: '#fff',
-    fontWeight: '700',
+    fontWeight: '900',
     fontSize: 13,
   },
   aviso: {

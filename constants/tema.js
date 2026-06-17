@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-const corDestaqueClaro = '#0a7ea4';
+const corDestaqueClaro = '#2457d6';
 const corDestaqueEscuro = '#fff';
 
 export const Cores = {
