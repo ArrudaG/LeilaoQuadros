@@ -22,16 +22,18 @@ export function BotaoAutenticacao({ title, onPress, loading = false, variant = '
 const styles = StyleSheet.create({
   botao: {
     width: '100%',
-    borderRadius: 12,
-    paddingVertical: 13,
+    borderRadius: 8,
+    paddingVertical: 14,
     alignItems: 'center',
     marginTop: 8,
   },
   primario: {
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#2457d6',
   },
   secundario: {
-    backgroundColor: '#dbeafe',
+    backgroundColor: '#e8f0ff',
+    borderWidth: 1,
+    borderColor: '#c9dafc',
   },
   texto: {
     fontSize: 16,
@@ -41,6 +43,6 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   textoSecundario: {
-    color: '#1d4ed8',
+    color: '#2457d6',
   },
 });

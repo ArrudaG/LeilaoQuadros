@@ -16,6 +16,8 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 
+import { IconeSimbolo } from '@/components/ui/icone-simbolo';
+import { EntradaAnimada } from '@/components/ui/leilao-design';
 import { API_BASE_URL } from '../../src/auth/services/servico-api';
 import {
   confirmarPagamentoLeilao,
@@ -43,7 +45,7 @@ function money(value) {
 
 function traduzirStatusResgate(status) {
   const mapa = {
-    pending_address: 'aguardando endereco',
+    pending_address: 'aguardando endereço',
     requested: 'solicitado',
     confirmed: 'a caminho',
     delivered: 'entregue',
@@ -63,7 +65,23 @@ function traduzirMetodoPagamento(method) {
     deposito_simulado: 'Deposito simulado',
   };
 
-  return mapa[String(method || '').toLowerCase()] || 'Nao informado';
+  return mapa[String(method || '').toLowerCase()] || 'Não informado';
+}
+
+function textoAcaoItem(item) {
+  if (item.paymentStatus !== 'paid') {
+    return 'Pagar item';
+  }
+
+  if (!item.redemptionStatus || item.redemptionStatus === 'pending_address') {
+    return 'Informar endereço';
+  }
+
+  if (item.redemptionStatus === 'confirmed') {
+    return 'Confirmar recebimento';
+  }
+
+  return '';
 }
 
 export default function TelaConquistas() {
@@ -100,7 +118,7 @@ export default function TelaConquistas() {
       const winsRes = await listarLeiloesVencidos(token);
       setWins(winsRes.wins || []);
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Nao foi possivel carregar conquistas.');
+      Alert.alert('Erro', error?.message || 'Não foi possível carregar conquistas.');
     } finally {
       setCarregando(false);
     }
@@ -153,6 +171,14 @@ export default function TelaConquistas() {
   }, [endereco.addressQuery, resgateModal]);
 
   const totalVitorias = useMemo(() => wins.length, [wins]);
+  const metricas = useMemo(
+    () => ({
+      pagamentosPendentes: wins.filter((item) => item.paymentStatus !== 'paid').length,
+      enderecosPendentes: wins.filter((item) => item.paymentStatus === 'paid' && (!item.redemptionStatus || item.redemptionStatus === 'pending_address')).length,
+      entregues: wins.filter((item) => item.redemptionStatus === 'delivered').length,
+    }),
+    [wins],
+  );
 
   function abrirResgate(item) {
     setResgateModal(item);
@@ -191,9 +217,9 @@ export default function TelaConquistas() {
       }));
       setEtapaResgate('address');
       await carregar();
-      Alert.alert('Pagamento confirmado', 'Pagamento simulado registrado. Agora informe o endereco de entrega.');
+      Alert.alert('Pagamento confirmado', 'Pagamento simulado registrado. Agora informe o endereço de entrega.');
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Nao foi possivel confirmar o pagamento.');
+      Alert.alert('Erro', error?.message || 'Não foi possível confirmar o pagamento.');
     } finally {
       setPagando(false);
     }
@@ -209,7 +235,7 @@ export default function TelaConquistas() {
       addressLine: String(addr.road || addr.pedestrian || sugestao.label),
       addressNumber: String(addr.house_number || 'S/N'),
       district: String(addr.suburb || addr.neighbourhood || ''),
-      city: String(addr.city || addr.town || addr.village || 'Nao informado'),
+      city: String(addr.city || addr.town || addr.village || 'Não informado'),
       state: String(addr.state || 'NI'),
       zipCode: String(addr.postcode || '00000000').replace(/\D/g, ''),
     }));
@@ -266,7 +292,7 @@ export default function TelaConquistas() {
     const consulta = String(endereco.addressQuery || '').trim();
 
     if (consulta.length < 6) {
-      Alert.alert('Mapa', 'Digite um endereco completo para localizar no mapa.');
+      Alert.alert('Mapa', 'Digite um endereço completo para localizar no mapa.');
       return;
     }
 
@@ -282,7 +308,7 @@ export default function TelaConquistas() {
       const geocoded = await geocodificarEnderecoComFallback(consulta);
 
       if (!geocoded?.latitude || !geocoded?.longitude) {
-        Alert.alert('Mapa', 'Nao encontramos esse endereco no mapa.');
+        Alert.alert('Mapa', 'Não encontramos esse endereço no mapa.');
         return;
       }
 
@@ -290,7 +316,7 @@ export default function TelaConquistas() {
       const longitude = Number(geocoded.longitude);
 
       if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-        Alert.alert('Mapa', 'Coordenadas invalidas para esse endereco.');
+        Alert.alert('Mapa', 'Coordenadas inválidas para esse endereço.');
         return;
       }
 
@@ -302,7 +328,7 @@ export default function TelaConquistas() {
         addressLine: String(enderecoApi.road || consulta),
         addressNumber: String(enderecoApi.house_number || 'S/N'),
         district: String(enderecoApi.suburb || enderecoApi.neighbourhood || ''),
-        city: String(enderecoApi.city || enderecoApi.town || enderecoApi.village || 'Nao informado'),
+        city: String(enderecoApi.city || enderecoApi.town || enderecoApi.village || 'Não informado'),
         state: String(enderecoApi.state || 'NI'),
         zipCode: String(enderecoApi.postcode || '00000000').replace(/\D/g, ''),
       }));
@@ -315,7 +341,7 @@ export default function TelaConquistas() {
 
   async function abrirRotaExterna() {
     if (!mapCoords) {
-      Alert.alert('Mapa', 'Primeiro visualize o endereco no mapa.');
+        Alert.alert('Mapa', 'Primeiro visualize o endereço no mapa.');
       return;
     }
 
@@ -324,7 +350,7 @@ export default function TelaConquistas() {
     try {
       const podeAbrir = await Linking.canOpenURL(url);
       if (!podeAbrir) {
-        Alert.alert('Mapa', 'Nao foi possivel abrir o app de mapas.');
+        Alert.alert('Mapa', 'Não foi possível abrir o app de mapas.');
         return;
       }
 
@@ -367,7 +393,7 @@ export default function TelaConquistas() {
         }));
 
       if (!posicao?.coords) {
-        Alert.alert('Localizacao', 'Nao foi possivel obter sua localizacao atual.');
+        Alert.alert('Localização', 'Não foi possível obter sua localização atual.');
         return;
       }
 
@@ -375,7 +401,7 @@ export default function TelaConquistas() {
       const longitude = Number(posicao.coords.longitude);
 
       if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-        Alert.alert('Localizacao', 'Nao foi possivel obter sua localizacao atual.');
+        Alert.alert('Localização', 'Não foi possível obter sua localização atual.');
         return;
       }
 
@@ -406,7 +432,7 @@ export default function TelaConquistas() {
         addressLine: String(addr.road || addr.pedestrian || label),
         addressNumber: String(addr.house_number || 'S/N'),
         district: String(addr.suburb || addr.neighbourhood || ''),
-        city: String(addr.city || addr.town || addr.village || 'Nao informado'),
+        city: String(addr.city || addr.town || addr.village || 'Não informado'),
         state: String(addr.state || 'NI'),
         zipCode: String(addr.postcode || '00000000').replace(/\D/g, ''),
       }));
@@ -425,7 +451,7 @@ export default function TelaConquistas() {
     }
 
     if (!endereco.addressQuery || !mapCoords) {
-      Alert.alert('Endereco incompleto', 'Digite o endereco e clique em visualizar no mapa antes de confirmar.');
+      Alert.alert('Endereço incompleto', 'Digite o endereço e clique em visualizar no mapa antes de confirmar.');
       return;
     }
 
@@ -438,7 +464,7 @@ export default function TelaConquistas() {
       await carregar();
       Alert.alert('Sucesso', 'Endereco enviado. O resgate foi solicitado.');
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Nao foi possivel solicitar resgate.');
+      Alert.alert('Erro', error?.message || 'Não foi possível solicitar resgate.');
     }
   }
 
@@ -452,7 +478,7 @@ export default function TelaConquistas() {
       await carregar();
       Alert.alert('Sucesso', 'Recebimento confirmado com sucesso.');
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Nao foi possivel confirmar recebimento.');
+      Alert.alert('Erro', error?.message || 'Não foi possível confirmar recebimento.');
     }
   }
 
@@ -463,53 +489,118 @@ export default function TelaConquistas() {
       keyboardShouldPersistTaps="handled"
       refreshControl={<RefreshControl refreshing={carregando} onRefresh={carregar} />}
     >
-      <Text style={styles.titulo}>Conquistas</Text>
+      <EntradaAnimada style={styles.hero}>
+        <View style={styles.heroIcone}>
+          <IconeSimbolo name="check.circle.fill" color="#047857" size={28} />
+        </View>
+        <Text style={styles.eyebrow}>Pós-leilão</Text>
+        <Text style={styles.titulo}>Conquistas</Text>
+        <Text style={styles.heroTexto}>Pague somente depois de vencer, informe o endereço e acompanhe a entrega do item.</Text>
+      </EntradaAnimada>
 
-      <View style={styles.card}>
-        <Text style={styles.subtitulo}>Resumo</Text>
-        <Text style={styles.info}>Leilões vencidos: {totalVitorias}</Text>
-        <Text style={styles.info}>Pagamento: feito apenas após vencer o leilão</Text>
+      <View style={styles.metricas}>
+        <View style={styles.metricaItem}>
+          <Text style={styles.metricaNumero}>{totalVitorias}</Text>
+          <Text style={styles.metricaLabel}>vitórias</Text>
+        </View>
+        <View style={styles.metricaItem}>
+          <Text style={styles.metricaNumero}>{metricas.pagamentosPendentes}</Text>
+          <Text style={styles.metricaLabel}>a pagar</Text>
+        </View>
+        <View style={styles.metricaItem}>
+          <Text style={styles.metricaNumero}>{metricas.enderecosPendentes}</Text>
+          <Text style={styles.metricaLabel}>endereços</Text>
+        </View>
+        <View style={styles.metricaItem}>
+          <Text style={styles.metricaNumero}>{metricas.entregues}</Text>
+          <Text style={styles.metricaLabel}>entregues</Text>
+        </View>
       </View>
 
-      <View style={styles.card}>
+      <View style={styles.secaoCabecalho}>
         <Text style={styles.subtitulo}>Leilões vencidos</Text>
-        {wins.map((item) => (
-          <View key={item.id} style={styles.winItem}>
-            {!!item.mediaUrl && <Image source={{ uri: montarUrlImagem(item.mediaUrl) }} style={styles.winImage} />}
-            <Text style={styles.winTitulo}>{item.title}</Text>
-            <Text style={styles.info}>Valor final: R$ {money(item.winnerBid)}</Text>
-            <Text style={styles.info}>Pagamento: {traduzirPagamento(item.paymentStatus)}</Text>
-            <Text style={styles.info}>Resgate: {traduzirStatusResgate(item.redemptionStatus)}</Text>
+        <Text style={styles.secaoMeta}>{totalVitorias} itens</Text>
+      </View>
 
-            {item.paymentStatus !== 'paid' ? (
-              <Pressable style={styles.botaoSecundario} onPress={() => abrirResgate(item)}>
-                <Text style={styles.textoBotao}>Pagar item</Text>
-              </Pressable>
-            ) : null}
+      <View style={styles.listaConquistas}>
+        {wins.map((item) => {
+          const imagem = montarUrlImagem(item.mediaUrl);
+          const textoAcao = textoAcaoItem(item);
+          const pagamentoPago = item.paymentStatus === 'paid';
+          const entregue = item.redemptionStatus === 'delivered';
 
-            {item.paymentStatus === 'paid' && (!item.redemptionStatus || item.redemptionStatus === 'pending_address') ? (
-              <Pressable style={styles.botaoSecundario} onPress={() => abrirResgate(item)}>
-                <Text style={styles.textoBotao}>Informar endereco</Text>
-              </Pressable>
-            ) : null}
+          return (
+            <View key={item.id} style={styles.winItem}>
+              {imagem ? (
+                <Image source={{ uri: imagem }} style={styles.winImage} />
+              ) : (
+                <View style={[styles.winImage, styles.winImageVazia]}>
+                  <IconeSimbolo name="gavel.fill" color="#64748b" size={30} />
+                </View>
+              )}
 
-            {item.redemptionStatus === 'confirmed' ? (
-              <Pressable style={styles.botaoSecundario} onPress={() => confirmarRecebimento(item.redemptionId)}>
-                <Text style={styles.textoBotao}>Confirmar recebimento</Text>
-              </Pressable>
-            ) : null}
+              <View style={styles.winCorpo}>
+                <View style={styles.winTopo}>
+                  <Text style={styles.winTitulo} numberOfLines={2}>{item.title}</Text>
+                  <Text style={styles.winValor}>R$ {money(item.winnerBid)}</Text>
+                </View>
+
+                <View style={styles.statusLinha}>
+                  <View style={[styles.statusPill, pagamentoPago ? styles.statusPago : styles.statusPendente]}>
+                    <IconeSimbolo name={pagamentoPago ? 'check.circle.fill' : 'payments.fill'} color={pagamentoPago ? '#047857' : '#b45309'} size={15} />
+                    <Text style={[styles.statusTexto, pagamentoPago ? styles.statusTextoPago : styles.statusTextoPendente]}>
+                      {traduzirPagamento(item.paymentStatus)}
+                    </Text>
+                  </View>
+
+                  <View style={[styles.statusPill, entregue ? styles.statusPago : styles.statusNeutro]}>
+                    <IconeSimbolo name={entregue ? 'check.circle.fill' : 'location.fill'} color={entregue ? '#047857' : '#2563eb'} size={15} />
+                    <Text style={[styles.statusTexto, entregue ? styles.statusTextoPago : styles.statusTextoNeutro]}>
+                      {traduzirStatusResgate(item.redemptionStatus)}
+                    </Text>
+                  </View>
+                </View>
+
+                {!!textoAcao && (
+                  <Pressable
+                    style={[styles.botaoAcao, item.redemptionStatus === 'confirmed' ? styles.botaoConfirmacao : null]}
+                    onPress={() => (item.redemptionStatus === 'confirmed' ? confirmarRecebimento(item.redemptionId) : abrirResgate(item))}
+                  >
+                    <IconeSimbolo name={item.redemptionStatus === 'confirmed' ? 'check.circle.fill' : 'arrow.right'} color="#fff" size={18} />
+                    <Text style={styles.textoBotao}>{textoAcao}</Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          );
+        })}
+        {!wins.length ? (
+          <View style={styles.vazioBox}>
+            <IconeSimbolo name="timer" color="#64748b" size={30} />
+            <Text style={styles.vazioTitulo}>Nenhum item conquistado</Text>
+            <Text style={styles.vazio}>Quando você vencer um leilão, o pagamento e o endereço aparecem aqui.</Text>
           </View>
-        ))}
-        {!wins.length ? <Text style={styles.vazio}>Você ainda não venceu nenhum leilão.</Text> : null}
+        ) : null}
       </View>
 
       <Modal visible={Boolean(resgateModal)} transparent animationType="slide" onRequestClose={() => setResgateModal(null)}>
         <View style={styles.overlay}>
-          <ScrollView style={styles.modal} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="always">
-            <Text style={styles.subtitulo}>Resgatar item</Text>
-            <Text style={styles.info}>Leilão: {resgateModal?.title}</Text>
-            <Text style={styles.info}>Valor final: R$ {money(resgateModal?.winnerBid)}</Text>
-            <Text style={styles.info}>Pagamento: {traduzirPagamento(resgateModal?.paymentStatus)}</Text>
+          <ScrollView style={styles.modal} contentContainerStyle={styles.modalConteudo} keyboardShouldPersistTaps="always">
+            <View style={styles.modalTopo}>
+              <View style={styles.modalIcone}>
+                <IconeSimbolo name={etapaResgate === 'payment' ? 'payments.fill' : 'location.fill'} color="#fff" size={24} />
+              </View>
+
+              <View style={styles.modalTituloBox}>
+                <Text style={styles.modalTitulo}>Resgatar item</Text>
+                <Text style={styles.modalSubtitulo}>{resgateModal?.title}</Text>
+              </View>
+            </View>
+
+            <View style={styles.resumoModal}>
+              <Text style={styles.info}>Valor final: R$ {money(resgateModal?.winnerBid)}</Text>
+              <Text style={styles.info}>Pagamento: {traduzirPagamento(resgateModal?.paymentStatus)}</Text>
+            </View>
 
             {etapaResgate === 'payment' ? (
               <View style={styles.checkoutBox}>
@@ -533,6 +624,7 @@ export default function TelaConquistas() {
                 <Text style={styles.info}>Metodo selecionado: {traduzirMetodoPagamento(paymentMethod)}</Text>
 
                 <Pressable style={styles.botao} onPress={confirmarPagamento} disabled={pagando}>
+                  <IconeSimbolo name="check.circle.fill" color="#fff" size={18} />
                   <Text style={styles.textoBotao}>{pagando ? 'Confirmando...' : 'Confirmar pagamento simulado'}</Text>
                 </Pressable>
               </View>
@@ -568,10 +660,12 @@ export default function TelaConquistas() {
             <TextInput style={styles.input} placeholder="Complemento" value={endereco.complement} onChangeText={(v) => setEndereco((s) => ({ ...s, complement: v }))} />
 
             <Pressable style={styles.botaoSecundario} onPress={visualizarMapa}>
-              <Text style={styles.textoBotao}>{carregandoMapa ? 'Buscando mapa...' : 'Visualizar endereco no mapa'}</Text>
+              <IconeSimbolo name="eye.fill" color="#fff" size={18} />
+              <Text style={styles.textoBotao}>{carregandoMapa ? 'Buscando mapa...' : 'Visualizar endereço no mapa'}</Text>
             </Pressable>
 
             <Pressable style={styles.botaoSecundario} onPress={usarLocalizacaoAtual} disabled={localizandoAtual}>
+              <IconeSimbolo name="location.fill" color="#fff" size={18} />
               <Text style={styles.textoBotao}>{localizandoAtual ? 'Localizando...' : 'Usar localizacao atual'}</Text>
             </Pressable>
 
@@ -596,18 +690,21 @@ export default function TelaConquistas() {
                 </MapView>
 
                 <Pressable style={styles.botaoSecundario} onPress={abrirRotaExterna}>
+                  <IconeSimbolo name="location.fill" color="#fff" size={18} />
                   <Text style={styles.textoBotao}>Abrir rota no app de mapas</Text>
                 </Pressable>
               </>
             )}
 
             <Pressable style={styles.botao} onPress={confirmarResgate}>
-              <Text style={styles.textoBotao}>Confirmar endereco e resgate</Text>
+              <IconeSimbolo name="send.fill" color="#fff" size={18} />
+              <Text style={styles.textoBotao}>Confirmar endereço e resgate</Text>
             </Pressable>
               </>
             ) : null}
 
             <Pressable style={styles.botaoFechar} onPress={() => setResgateModal(null)}>
+              <IconeSimbolo name="xmark" color="#fff" size={20} />
               <Text style={styles.textoBotao}>Fechar</Text>
             </Pressable>
           </ScrollView>
@@ -620,26 +717,94 @@ export default function TelaConquistas() {
 const styles = StyleSheet.create({
   tela: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f4f7fb',
   },
   conteudo: {
     padding: 16,
-    gap: 12,
-    paddingBottom: 28,
+    gap: 16,
+    paddingBottom: 32,
+  },
+  hero: {
+    marginTop: 24,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 18,
+    minHeight: 164,
+    justifyContent: 'flex-end',
+    borderWidth: 1,
+    borderColor: '#bbebd0',
+  },
+  heroIcone: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    backgroundColor: '#dff7ea',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  eyebrow: {
+    color: '#047857',
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
   },
   titulo: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0f172a',
+    fontSize: 31,
+    fontWeight: '900',
+    color: '#101828',
+  },
+  heroTexto: {
+    color: '#667085',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 8,
   },
   subtitulo: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: 19,
+    fontWeight: '900',
+    color: '#0f172a',
+  },
+  metricas: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  metricaItem: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  metricaNumero: {
+    color: '#0f172a',
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  metricaLabel: {
+    color: '#64748b',
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  secaoCabecalho: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  secaoMeta: {
+    color: '#64748b',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  listaConquistas: {
+    gap: 12,
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 14,
+    borderRadius: 8,
     padding: 12,
     gap: 8,
     borderWidth: 1,
@@ -651,7 +816,7 @@ const styles = StyleSheet.create({
   },
   checkoutBox: {
     backgroundColor: '#eef6ff',
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#cfe2ff',
     padding: 10,
@@ -665,7 +830,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: '#cbd5e1',
-    borderRadius: 10,
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 10,
     color: '#0f172a',
@@ -683,7 +848,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   chipAtivo: {
-    backgroundColor: '#0ea5e9',
+    backgroundColor: '#2457d6',
   },
   chipTexto: {
     color: '#0f172a',
@@ -695,64 +860,197 @@ const styles = StyleSheet.create({
   },
   botao: {
     backgroundColor: '#0f172a',
-    borderRadius: 10,
+    borderRadius: 8,
     paddingVertical: 11,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
   },
   botaoSecundario: {
-    backgroundColor: '#0284c7',
-    borderRadius: 10,
+    backgroundColor: '#2457d6',
+    borderRadius: 8,
     paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
   },
   botaoFechar: {
-    backgroundColor: '#64748b',
-    borderRadius: 10,
+    backgroundColor: '#475569',
+    borderRadius: 8,
     paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
   },
   textoBotao: {
     color: '#fff',
-    fontWeight: '700',
+    fontWeight: '900',
   },
   winItem: {
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 10,
-    gap: 6,
+    gap: 10,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
   },
   winImage: {
-    width: '100%',
-    height: 120,
-    borderRadius: 10,
+    width: 104,
+    height: 132,
+    borderRadius: 8,
     backgroundColor: '#cbd5e1',
+  },
+  winImageVazia: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  winCorpo: {
+    flex: 1,
+    gap: 8,
+  },
+  winTopo: {
+    gap: 3,
   },
   winTitulo: {
     color: '#0f172a',
-    fontWeight: '800',
-    fontSize: 15,
+    fontWeight: '900',
+    fontSize: 16,
+  },
+  winValor: {
+    color: '#2457d6',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  statusLinha: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderWidth: 1,
+  },
+  statusPago: {
+    backgroundColor: '#dcfce7',
+    borderColor: '#bbf7d0',
+  },
+  statusPendente: {
+    backgroundColor: '#fffbeb',
+    borderColor: '#fde68a',
+  },
+  statusNeutro: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#bfdbfe',
+  },
+  statusTexto: {
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  statusTextoPago: {
+    color: '#047857',
+  },
+  statusTextoPendente: {
+    color: '#b45309',
+  },
+  statusTextoNeutro: {
+    color: '#2563eb',
+  },
+  botaoAcao: {
+    backgroundColor: '#2457d6',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 2,
+  },
+  botaoConfirmacao: {
+    backgroundColor: '#0f9f6e',
   },
   vazio: {
     color: '#64748b',
     fontSize: 13,
+    textAlign: 'center',
+  },
+  vazioBox: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    padding: 20,
+    alignItems: 'center',
+    gap: 8,
+  },
+  vazioTitulo: {
+    color: '#0f172a',
+    fontSize: 16,
+    fontWeight: '900',
   },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(2,6,23,0.75)',
-    justifyContent: 'center',
-    padding: 16,
+    justifyContent: 'flex-end',
   },
   modal: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 14,
+    backgroundColor: '#f4f7fb',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
     maxHeight: '88%',
-    padding: 14,
+  },
+  modalConteudo: {
+    gap: 10,
+    padding: 16,
+    paddingBottom: 24,
+  },
+  modalTopo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 4,
+  },
+  modalIcone: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#2457d6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTituloBox: {
+    flex: 1,
+  },
+  modalTitulo: {
+    color: '#0f172a',
+    fontSize: 21,
+    fontWeight: '900',
+  },
+  modalSubtitulo: {
+    color: '#64748b',
+    fontSize: 13,
+    marginTop: 2,
+  },
+  resumoModal: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 12,
+    gap: 4,
   },
   mapa: {
     width: '100%',
     height: 170,
-    borderRadius: 10,
+    borderRadius: 8,
     backgroundColor: '#cbd5e1',
   },
   sugestaoInfo: {
@@ -763,7 +1061,7 @@ const styles = StyleSheet.create({
   sugestoesBox: {
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderRadius: 10,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   sugestaoItem: {

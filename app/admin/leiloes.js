@@ -3,6 +3,8 @@ import { Alert, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, 
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 
+import { IconeSimbolo } from '@/components/ui/icone-simbolo';
+import { HeroLeilao } from '@/components/ui/leilao-design';
 import { API_BASE_URL } from '../../src/auth/services/servico-api';
 import {
   criarLeilaoAdmin,
@@ -75,6 +77,10 @@ function montarUrlImagem(url) {
   return `${API_BASE_URL}${url}`;
 }
 
+function nomeLider(leilao) {
+  return leilao?.highestBidderName || [leilao?.highestBidderFirstName, leilao?.highestBidderLastName].filter(Boolean).join(' ') || 'Sem lances';
+}
+
 function calcularPeriodoPorDuracao(formAtual, minutos) {
   const agora = new Date();
   let inicio = formAtual.startsAt ? new Date(formAtual.startsAt) : agora;
@@ -114,7 +120,7 @@ export default function AdminLeiloesScreen() {
       const resultado = await listarLeiloesAdmin(token);
       setLeiloes(resultado.auctions || []);
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Falha ao carregar leiloes.');
+      Alert.alert('Erro', error?.message || 'Falha ao carregar leilões.');
     } finally {
       setCarregando(false);
     }
@@ -175,7 +181,7 @@ export default function AdminLeiloesScreen() {
     try {
       const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissao.granted) {
-        Alert.alert('Permissao necessaria', 'Autorize acesso a galeria para adicionar midia ao leilao.');
+        Alert.alert('Permissão necessária', 'Autorize acesso à galeria para adicionar mídia ao leilão.');
         return;
       }
 
@@ -204,7 +210,7 @@ export default function AdminLeiloesScreen() {
         mediaUrl: uploaded.mediaUrl || '',
       }));
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Falha ao enviar midia para o servidor.');
+      Alert.alert('Erro', error?.message || 'Falha ao enviar mídia para o servidor.');
     } finally {
       setEnviandoMidia(false);
     }
@@ -222,7 +228,7 @@ export default function AdminLeiloesScreen() {
       let fimIso = form.endsAt;
 
       if (!form.id && (!minutos || minutos <= 0)) {
-        throw new Error('Selecione uma duracao valida para o leilao.');
+        throw new Error('Selecione uma duração válida para o leilão.');
       }
 
       if (!form.id && form.status === 'active') {
@@ -253,7 +259,7 @@ export default function AdminLeiloesScreen() {
       await carregar();
       Alert.alert('Sucesso', 'Leilao salvo com sucesso.');
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Nao foi possivel salvar o leilao.');
+      Alert.alert('Erro', error?.message || 'Não foi possível salvar o leilão.');
     } finally {
       setCarregando(false);
     }
@@ -264,7 +270,7 @@ export default function AdminLeiloesScreen() {
       return;
     }
 
-    Alert.alert('Excluir leilao', 'Tem certeza que deseja excluir este leilao?', [
+    Alert.alert('Excluir leilão', 'Tem certeza que deseja excluir este leilão?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Excluir',
@@ -275,7 +281,7 @@ export default function AdminLeiloesScreen() {
             await excluirLeilaoAdmin(token, auctionId);
             await carregar();
           } catch (error) {
-            Alert.alert('Erro', error?.message || 'Nao foi possivel excluir o leilao.');
+            Alert.alert('Erro', error?.message || 'Não foi possível excluir o leilão.');
           } finally {
             setCarregando(false);
           }
@@ -289,7 +295,7 @@ export default function AdminLeiloesScreen() {
       return;
     }
 
-    Alert.alert('Encerrar leilao', 'Deseja encerrar este leilao agora?', [
+    Alert.alert('Encerrar leilão', 'Deseja encerrar este leilão agora?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Encerrar',
@@ -301,7 +307,7 @@ export default function AdminLeiloesScreen() {
             await carregar();
             Alert.alert('Sucesso', 'Leilao encerrado.');
           } catch (error) {
-            Alert.alert('Erro', error?.message || 'Nao foi possivel encerrar o leilao.');
+            Alert.alert('Erro', error?.message || 'Não foi possível encerrar o leilão.');
           } finally {
             setCarregando(false);
           }
@@ -316,6 +322,14 @@ export default function AdminLeiloesScreen() {
       contentContainerStyle={styles.conteudo}
       refreshControl={<RefreshControl refreshing={carregando} onRefresh={carregar} />}
     >
+      <HeroLeilao
+        eyebrow="Admin"
+          title="Gerenciar leilões"
+          subtitle="Crie itens, ajuste duração, acompanhe o vencedor momentâneo e encerre disputas."
+          icon="gavel.fill"
+          accent="#d99b20"
+      />
+
       <View style={styles.card}>
         <Text style={styles.subtitulo}>{form.id ? 'Editar leilão' : 'Novo leilão'}</Text>
 
@@ -419,15 +433,16 @@ export default function AdminLeiloesScreen() {
               <Text style={styles.tag}>Lances: {item.bidsCount}</Text>
             </View>
             <Text style={styles.itemInfo}>Atual: R$ {formatarMoney(item.currentBid)} | Incremento: R$ {formatarMoney(item.minIncrement)}</Text>
+            <Text style={styles.itemInfo}>Vencedor momentâneo: {nomeLider(item)}</Text>
             <Text style={styles.itemInfo}>Início: {formatarDataHora(item.startsAt)}</Text>
             <Text style={styles.itemInfo}>Fim: {formatarDataHora(item.endsAt)}</Text>
             <View style={styles.linhaAcoes}>
-              <Pressable style={styles.acaoEditar} onPress={() => editarLeilao(item)}><Text style={styles.textoAcao}>Editar</Text></Pressable>
-              <Pressable style={styles.acaoParticipantes} onPress={() => router.push(`/admin/participantes?auctionId=${encodeURIComponent(item.id)}`)}><Text style={styles.textoAcao}>Participantes</Text></Pressable>
+              <Pressable style={styles.acaoEditar} onPress={() => editarLeilao(item)}><IconeSimbolo name="pencil" size={17} color="#fff" /><Text style={styles.textoAcao}>Editar</Text></Pressable>
+              <Pressable style={styles.acaoParticipantes} onPress={() => router.push(`/admin/participantes?auctionId=${encodeURIComponent(item.id)}`)}><IconeSimbolo name="person.3.fill" size={17} color="#fff" /><Text style={styles.textoAcao}>Participantes</Text></Pressable>
               {item.status !== 'closed' && item.status !== 'cancelled' ? (
-                <Pressable style={styles.acaoEncerrar} onPress={() => encerrarLeilao(item.id)}><Text style={styles.textoAcao}>Encerrar</Text></Pressable>
+                <Pressable style={styles.acaoEncerrar} onPress={() => encerrarLeilao(item.id)}><IconeSimbolo name="timer" size={17} color="#fff" /><Text style={styles.textoAcao}>Encerrar</Text></Pressable>
               ) : null}
-              <Pressable style={styles.acaoExcluir} onPress={() => removerLeilao(item.id)}><Text style={styles.textoAcao}>Excluir</Text></Pressable>
+              <Pressable style={styles.acaoExcluir} onPress={() => removerLeilao(item.id)}><IconeSimbolo name="trash.fill" size={17} color="#fff" /><Text style={styles.textoAcao}>Excluir</Text></Pressable>
             </View>
           </View>
         ))}
@@ -440,25 +455,26 @@ export default function AdminLeiloesScreen() {
 const styles = StyleSheet.create({
   tela: {
     flex: 1,
-    backgroundColor: '#eef3ff',
+    backgroundColor: '#f4f7fb',
   },
   conteudo: {
-    padding: 14,
-    gap: 12,
-    paddingBottom: 28,
+    padding: 16,
+    gap: 14,
+    paddingTop: 18,
+    paddingBottom: 24,
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#dbe4ff',
-    padding: 12,
+    borderColor: '#d8dee9',
+    padding: 14,
     gap: 10,
   },
   subtitulo: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontSize: 19,
+    fontWeight: '900',
+    color: '#101828',
     marginBottom: 8,
   },
   label: {
@@ -468,12 +484,12 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#c9d7ff',
-    borderRadius: 10,
+    borderColor: '#cfd7e6',
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 9,
     color: '#0f172a',
-    backgroundColor: '#fff',
+    backgroundColor: '#f9fbff',
   },
   inputMultiline: {
     minHeight: 72,
@@ -485,13 +501,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chip: {
-    backgroundColor: '#eef3ff',
+    backgroundColor: '#fff',
     borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#d8dee9',
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   chipAtivo: {
-    backgroundColor: '#1d4ed8',
+    backgroundColor: '#0b1020',
+    borderColor: '#0b1020',
   },
   chipTexto: {
     color: '#1e293b',
@@ -510,8 +529,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   linhaTempoInfo: {
-    backgroundColor: '#eef4ff',
-    borderRadius: 10,
+    backgroundColor: '#f9fbff',
+    borderRadius: 8,
     padding: 10,
     gap: 4,
     borderWidth: 1,
@@ -528,7 +547,7 @@ const styles = StyleSheet.create({
   previewMidia: {
     width: '100%',
     height: 180,
-    borderRadius: 12,
+    borderRadius: 8,
     backgroundColor: '#d7deef',
   },
   mediaAcoes: {
@@ -537,20 +556,20 @@ const styles = StyleSheet.create({
   },
   botaoMidia: {
     flex: 1,
-    backgroundColor: '#1e40af',
-    borderRadius: 10,
+    backgroundColor: '#2457d6',
+    borderRadius: 8,
     paddingVertical: 10,
     alignItems: 'center',
   },
   botaoPrimario: {
-    backgroundColor: '#1d4ed8',
-    borderRadius: 10,
+    backgroundColor: '#2457d6',
+    borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
   },
   botaoSecundario: {
     backgroundColor: '#ebf1ff',
-    borderRadius: 10,
+    borderRadius: 8,
     paddingVertical: 10,
     alignItems: 'center',
     borderWidth: 1,
@@ -567,7 +586,7 @@ const styles = StyleSheet.create({
   itemLinha: {
     borderWidth: 1,
     borderColor: '#d8e3ff',
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 10,
     gap: 5,
     backgroundColor: '#fbfdff',
@@ -609,24 +628,36 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   acaoParticipantes: {
     backgroundColor: '#0f766e',
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   acaoEncerrar: {
     backgroundColor: '#7c2d12',
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   acaoExcluir: {
     backgroundColor: '#b91c1c',
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   textoAcao: {
     color: '#fff',
