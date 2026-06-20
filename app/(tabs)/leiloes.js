@@ -260,7 +260,7 @@ export default function TelaLeiloes() {
         renderItem={renderLeilao}
         refreshControl={<RefreshControl refreshing={carregando} onRefresh={() => carregarLeiloes(statusAtivo)} />}
         contentContainerStyle={styles.lista}
-        ListEmptyComponent={<EstadoVazio icon="timer" title="Nada por aqui" text="Não há leilões nesta categoria." />}
+        ListEmptyComponent={<EstadoVazio icon="timer" title="Nenhum lote encontrado" text="Não há lotes nesta categoria." />}
       />
 
       <Modal

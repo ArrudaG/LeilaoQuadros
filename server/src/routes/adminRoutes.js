@@ -535,7 +535,7 @@ adminRoutes.patch('/redemptions/:redemptionId/status', async (req, res) => {
     const statusAtual = String(current.rows[0].status || '');
 
     if (status === 'confirmed' && statusAtual !== 'requested') {
-      return res.status(400).json({ message: 'Só é possível liberar resgates solicitados.' });
+      return res.status(400).json({ message: 'Só é possível liberar entregas solicitadas.' });
     }
 
     const updated = await pool.query(

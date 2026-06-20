@@ -194,8 +194,8 @@ export default function TelaInicio() {
       {!leiloesAtivos.length ? (
         <EstadoVazio
           icon="timer"
-          title="Nenhum leilão ativo agora"
-          text="Quando o admin iniciar um leilão, os itens aparecem aqui automaticamente."
+          title="Nenhum lote ativo agora"
+          text="Quando o administrador iniciar um lote, ele aparecerá aqui automaticamente."
         />
       ) : null}
     </TelaComFundo>

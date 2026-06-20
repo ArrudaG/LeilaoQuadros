@@ -69,7 +69,7 @@ export default function AdminResumoScreen() {
           <IconeSimbolo name="shield.fill" color="#2457d6" size={28} />
         </View>
         <Text style={styles.eyebrow}>Painel administrativo</Text>
-        <Text style={styles.titulo}>Admin Leilões</Text>
+        <Text style={styles.titulo}>Painel de leilões</Text>
         <Text style={styles.subtitulo}>Controle lotes ativos, resultados e entregas em poucos toques.</Text>
       </View>
 
