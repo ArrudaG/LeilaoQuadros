@@ -97,13 +97,13 @@ export default function AdminParticipantesScreen() {
       <HeroLeilao
         eyebrow="Admin"
         title="Participantes"
-        subtitle="Escolha o leilão e acompanhe quem entrou na disputa, quantos lances fez e qual foi o maior valor."
+        subtitle="Escolha o lote e acompanhe quem entrou na disputa, quantos lances fez e qual foi o maior valor."
         icon="person.3.fill"
         accent="#11a7c8"
       />
 
       <CartaoLeilao style={styles.card}>
-        <Text style={styles.cardTitulo}>Selecionar leilão</Text>
+        <Text style={styles.cardTitulo}>Selecionar lote</Text>
         <View style={styles.chipsLinha}>
           {leiloes.map((item) => (
             <Pressable
@@ -120,7 +120,7 @@ export default function AdminParticipantesScreen() {
       </CartaoLeilao>
 
       <View style={styles.secaoLinha}>
-        <Text style={styles.tituloLista}>{nomeLeilaoSelecionado || 'Selecione um leilão'}</Text>
+        <Text style={styles.tituloLista}>{nomeLeilaoSelecionado || 'Selecione um lote'}</Text>
         <PillStatus tone="blue" icon="person.3.fill">{participantes.length} participantes</PillStatus>
       </View>
 
@@ -155,7 +155,7 @@ export default function AdminParticipantesScreen() {
         ))}
 
         {!participantes.length ? (
-          <EstadoVazio icon="person.3.fill" title="Sem participantes" text="Nenhum participante entrou no leilão selecionado ainda." />
+          <EstadoVazio icon="person.3.fill" title="Sem participantes" text="Nenhum participante entrou no lote selecionado ainda." />
         ) : null}
       </View>
     </ScrollView>

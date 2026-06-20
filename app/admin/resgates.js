@@ -19,9 +19,9 @@ function traduzirStatusResgate(status) {
 
 function traduzirPagamento(method) {
   const mapa = {
-    pix_simulado: 'PIX simulado',
-    cartao_simulado: 'Cartao simulado',
-    deposito_simulado: 'Deposito simulado',
+    pix_simulado: 'PIX',
+    cartao_simulado: 'Cartão',
+    deposito_simulado: 'Depósito',
   };
 
   return mapa[String(method || '').toLowerCase()] || 'Não informado';
@@ -54,7 +54,7 @@ export default function AdminResgatesScreen() {
       const resultado = await listarResgatesAdmin(token);
       setResgates(resultado.redemptions || []);
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Falha ao carregar resgates.');
+      Alert.alert('Erro', error?.message || 'Falha ao carregar entregas.');
     } finally {
       setCarregando(false);
     }
@@ -74,7 +74,7 @@ export default function AdminResgatesScreen() {
       await atualizarStatusResgateAdmin(token, redemptionId, 'confirmed');
       await carregar();
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Não foi possível atualizar status do resgate.');
+      Alert.alert('Erro', error?.message || 'Não foi possível atualizar o status da entrega.');
     } finally {
       setCarregando(false);
     }
@@ -89,8 +89,8 @@ export default function AdminResgatesScreen() {
     >
       <HeroLeilao
         eyebrow="Admin"
-        title="Resgates"
-        subtitle="Acompanhe pagamento, endereço e entrega dos itens vencidos."
+        title="Entregas"
+        subtitle="Acompanhe o pagamento, o endereço e o envio dos lotes arrematados."
         icon="shippingbox.fill"
         accent="#0f9f6e"
       />
@@ -123,14 +123,14 @@ export default function AdminResgatesScreen() {
             {item.status === 'requested' ? (
               <Pressable style={styles.acaoLiberar} onPress={() => liberarResgate(item.id)}>
                 <IconeSimbolo name="check.circle.fill" color="#fff" size={18} />
-                <Text style={styles.textoAcao}>Liberar resgate</Text>
+                <Text style={styles.textoAcao}>Liberar entrega</Text>
               </Pressable>
             ) : null}
           </CartaoLeilao>
         ))}
 
         {!resgates.length ? (
-          <EstadoVazio icon="shippingbox.fill" title="Sem resgates" text="Quando um vencedor informar o endereço, a solicitação aparece aqui." />
+          <EstadoVazio icon="shippingbox.fill" title="Sem entregas" text="Quando um arrematante informar o endereço, a solicitação aparecerá aqui." />
         ) : null}
       </View>
     </ScrollView>

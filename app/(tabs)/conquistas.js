@@ -60,9 +60,9 @@ function traduzirPagamento(status) {
 
 function traduzirMetodoPagamento(method) {
   const mapa = {
-    pix_simulado: 'PIX simulado',
-    cartao_simulado: 'Cartao simulado',
-    deposito_simulado: 'Deposito simulado',
+    pix_simulado: 'PIX',
+    cartao_simulado: 'Cartão',
+    deposito_simulado: 'Depósito',
   };
 
   return mapa[String(method || '').toLowerCase()] || 'Não informado';
@@ -118,7 +118,7 @@ export default function TelaConquistas() {
       const winsRes = await listarLeiloesVencidos(token);
       setWins(winsRes.wins || []);
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Não foi possível carregar conquistas.');
+      Alert.alert('Erro', error?.message || 'Não foi possível carregar os itens arrematados.');
     } finally {
       setCarregando(false);
     }
@@ -217,7 +217,7 @@ export default function TelaConquistas() {
       }));
       setEtapaResgate('address');
       await carregar();
-      Alert.alert('Pagamento confirmado', 'Pagamento simulado registrado. Agora informe o endereço de entrega.');
+      Alert.alert('Pagamento confirmado', 'Pagamento registrado. Agora informe o endereço de entrega.');
     } catch (error) {
       Alert.alert('Erro', error?.message || 'Não foi possível confirmar o pagamento.');
     } finally {
@@ -279,7 +279,7 @@ export default function TelaConquistas() {
     return new Promise((resolve) => {
       Alert.alert(
         'Localização para facilitar o endereço',
-        'Vamos usar sua localização apenas para preencher o endereço de resgate e mostrar no mapa.',
+        'Vamos usar sua localização apenas para preencher o endereço de entrega e mostrar no mapa.',
         [
           { text: 'Agora não', style: 'cancel', onPress: () => resolve(false) },
           { text: 'Permitir', onPress: () => resolve(true) },
@@ -462,9 +462,9 @@ export default function TelaConquistas() {
       });
       setResgateModal(null);
       await carregar();
-      Alert.alert('Sucesso', 'Endereco enviado. O resgate foi solicitado.');
+      Alert.alert('Sucesso', 'Endereço enviado. A entrega foi solicitada.');
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Não foi possível solicitar resgate.');
+      Alert.alert('Erro', error?.message || 'Não foi possível solicitar a entrega.');
     }
   }
 
@@ -494,14 +494,14 @@ export default function TelaConquistas() {
           <IconeSimbolo name="check.circle.fill" color="#047857" size={28} />
         </View>
         <Text style={styles.eyebrow}>Pós-leilão</Text>
-        <Text style={styles.titulo}>Conquistas</Text>
-        <Text style={styles.heroTexto}>Pague somente depois de vencer, informe o endereço e acompanhe a entrega do item.</Text>
+        <Text style={styles.titulo}>Itens arrematados</Text>
+        <Text style={styles.heroTexto}>Confira seus arremates, conclua o pagamento e acompanhe a entrega de cada lote.</Text>
       </EntradaAnimada>
 
       <View style={styles.metricas}>
         <View style={styles.metricaItem}>
           <Text style={styles.metricaNumero}>{totalVitorias}</Text>
-          <Text style={styles.metricaLabel}>vitórias</Text>
+          <Text style={styles.metricaLabel}>arremates</Text>
         </View>
         <View style={styles.metricaItem}>
           <Text style={styles.metricaNumero}>{metricas.pagamentosPendentes}</Text>
@@ -518,7 +518,7 @@ export default function TelaConquistas() {
       </View>
 
       <View style={styles.secaoCabecalho}>
-        <Text style={styles.subtitulo}>Leilões vencidos</Text>
+        <Text style={styles.subtitulo}>Seus arremates</Text>
         <Text style={styles.secaoMeta}>{totalVitorias} itens</Text>
       </View>
 
@@ -577,8 +577,8 @@ export default function TelaConquistas() {
         {!wins.length ? (
           <View style={styles.vazioBox}>
             <IconeSimbolo name="timer" color="#64748b" size={30} />
-            <Text style={styles.vazioTitulo}>Nenhum item conquistado</Text>
-            <Text style={styles.vazio}>Quando você vencer um leilão, o pagamento e o endereço aparecem aqui.</Text>
+            <Text style={styles.vazioTitulo}>Nenhum item arrematado</Text>
+            <Text style={styles.vazio}>Quando você vencer um lote, o pagamento e a entrega aparecerão aqui.</Text>
           </View>
         ) : null}
       </View>
@@ -592,7 +592,7 @@ export default function TelaConquistas() {
               </View>
 
               <View style={styles.modalTituloBox}>
-                <Text style={styles.modalTitulo}>Resgatar item</Text>
+                <Text style={styles.modalTitulo}>Finalizar arremate</Text>
                 <Text style={styles.modalSubtitulo}>{resgateModal?.title}</Text>
               </View>
             </View>
@@ -625,7 +625,7 @@ export default function TelaConquistas() {
 
                 <Pressable style={styles.botao} onPress={confirmarPagamento} disabled={pagando}>
                   <IconeSimbolo name="check.circle.fill" color="#fff" size={18} />
-                  <Text style={styles.textoBotao}>{pagando ? 'Confirmando...' : 'Confirmar pagamento simulado'}</Text>
+                  <Text style={styles.textoBotao}>{pagando ? 'Confirmando...' : 'Confirmar pagamento'}</Text>
                 </Pressable>
               </View>
             ) : null}
@@ -698,7 +698,7 @@ export default function TelaConquistas() {
 
             <Pressable style={styles.botao} onPress={confirmarResgate}>
               <IconeSimbolo name="send.fill" color="#fff" size={18} />
-              <Text style={styles.textoBotao}>Confirmar endereço e resgate</Text>
+              <Text style={styles.textoBotao}>Confirmar endereço de entrega</Text>
             </Pressable>
               </>
             ) : null}

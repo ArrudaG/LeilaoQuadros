@@ -181,7 +181,7 @@ export default function AdminLeiloesScreen() {
     try {
       const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissao.granted) {
-        Alert.alert('Permissão necessária', 'Autorize acesso à galeria para adicionar mídia ao leilão.');
+        Alert.alert('Permissão necessária', 'Autorize acesso à galeria para adicionar mídia ao lote.');
         return;
       }
 
@@ -228,7 +228,7 @@ export default function AdminLeiloesScreen() {
       let fimIso = form.endsAt;
 
       if (!form.id && (!minutos || minutos <= 0)) {
-        throw new Error('Selecione uma duração válida para o leilão.');
+        throw new Error('Selecione uma duração válida para o lote.');
       }
 
       if (!form.id && form.status === 'active') {
@@ -257,9 +257,9 @@ export default function AdminLeiloesScreen() {
 
       setForm(formularioVazio);
       await carregar();
-      Alert.alert('Sucesso', 'Leilao salvo com sucesso.');
+      Alert.alert('Sucesso', 'Lote salvo com sucesso.');
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Não foi possível salvar o leilão.');
+      Alert.alert('Erro', error?.message || 'Não foi possível salvar o lote.');
     } finally {
       setCarregando(false);
     }
@@ -270,7 +270,7 @@ export default function AdminLeiloesScreen() {
       return;
     }
 
-    Alert.alert('Excluir leilão', 'Tem certeza que deseja excluir este leilão?', [
+    Alert.alert('Excluir lote', 'Tem certeza que deseja excluir este lote?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Excluir',
@@ -281,7 +281,7 @@ export default function AdminLeiloesScreen() {
             await excluirLeilaoAdmin(token, auctionId);
             await carregar();
           } catch (error) {
-            Alert.alert('Erro', error?.message || 'Não foi possível excluir o leilão.');
+            Alert.alert('Erro', error?.message || 'Não foi possível excluir o lote.');
           } finally {
             setCarregando(false);
           }
@@ -295,7 +295,7 @@ export default function AdminLeiloesScreen() {
       return;
     }
 
-    Alert.alert('Encerrar leilão', 'Deseja encerrar este leilão agora?', [
+    Alert.alert('Encerrar lote', 'Deseja encerrar este lote agora?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Encerrar',
@@ -305,9 +305,9 @@ export default function AdminLeiloesScreen() {
             setCarregando(true);
             await encerrarLeilaoAdmin(token, auctionId);
             await carregar();
-            Alert.alert('Sucesso', 'Leilao encerrado.');
+            Alert.alert('Sucesso', 'Lote encerrado.');
           } catch (error) {
-            Alert.alert('Erro', error?.message || 'Não foi possível encerrar o leilão.');
+            Alert.alert('Erro', error?.message || 'Não foi possível encerrar o lote.');
           } finally {
             setCarregando(false);
           }
@@ -324,16 +324,16 @@ export default function AdminLeiloesScreen() {
     >
       <HeroLeilao
         eyebrow="Admin"
-          title="Gerenciar leilões"
-          subtitle="Crie itens, ajuste duração, acompanhe o vencedor momentâneo e encerre disputas."
+          title="Gerenciar lotes"
+          subtitle="Cadastre lotes, ajuste a duração, acompanhe o líder atual e encerre disputas."
           icon="gavel.fill"
           accent="#d99b20"
       />
 
       <View style={styles.card}>
-        <Text style={styles.subtitulo}>{form.id ? 'Editar leilão' : 'Novo leilão'}</Text>
+        <Text style={styles.subtitulo}>{form.id ? 'Editar lote' : 'Novo lote'}</Text>
 
-        <TextInput style={styles.input} placeholder="Titulo do leilão" value={form.title} onChangeText={(v) => setForm((s) => ({ ...s, title: v }))} />
+        <TextInput style={styles.input} placeholder="Título do lote" value={form.title} onChangeText={(v) => setForm((s) => ({ ...s, title: v }))} />
         <TextInput style={[styles.input, styles.inputMultiline]} placeholder="Descrição" multiline value={form.description} onChangeText={(v) => setForm((s) => ({ ...s, description: v }))} />
 
         <Text style={styles.label}>Status inicial</Text>
@@ -395,7 +395,7 @@ export default function AdminLeiloesScreen() {
         </View>
 
         <View style={styles.mediaBox}>
-          <Text style={styles.label}>Mídia do leilão</Text>
+          <Text style={styles.label}>Mídia do lote</Text>
           {form.mediaUrl ? <Image source={{ uri: montarUrlImagem(form.mediaUrl) }} style={styles.previewMidia} /> : null}
 
           <View style={styles.mediaAcoes}>
@@ -412,7 +412,7 @@ export default function AdminLeiloesScreen() {
         </View>
 
         <Pressable style={styles.botaoPrimario} onPress={salvarLeilao} disabled={carregando}>
-          <Text style={styles.textoBotao}>{carregando ? 'Salvando...' : form.id ? 'Atualizar Leilão' : 'Criar Leilão'}</Text>
+          <Text style={styles.textoBotao}>{carregando ? 'Salvando...' : form.id ? 'Atualizar lote' : 'Criar lote'}</Text>
         </Pressable>
 
         {form.id ? (
@@ -423,7 +423,7 @@ export default function AdminLeiloesScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.subtitulo}>Leilões cadastrados</Text>
+        <Text style={styles.subtitulo}>Lotes cadastrados</Text>
         {leiloes.map((item) => (
           <View key={item.id} style={styles.itemLinha}>
             <Text style={styles.itemTitulo}>{item.title}</Text>
@@ -433,7 +433,7 @@ export default function AdminLeiloesScreen() {
               <Text style={styles.tag}>Lances: {item.bidsCount}</Text>
             </View>
             <Text style={styles.itemInfo}>Atual: R$ {formatarMoney(item.currentBid)} | Incremento: R$ {formatarMoney(item.minIncrement)}</Text>
-            <Text style={styles.itemInfo}>Vencedor momentâneo: {nomeLider(item)}</Text>
+            <Text style={styles.itemInfo}>Líder atual: {nomeLider(item)}</Text>
             <Text style={styles.itemInfo}>Início: {formatarDataHora(item.startsAt)}</Text>
             <Text style={styles.itemInfo}>Fim: {formatarDataHora(item.endsAt)}</Text>
             <View style={styles.linhaAcoes}>
@@ -446,7 +446,7 @@ export default function AdminLeiloesScreen() {
             </View>
           </View>
         ))}
-        {!leiloes.length ? <Text style={styles.vazio}>Sem leilões cadastrados.</Text> : null}
+        {!leiloes.length ? <Text style={styles.vazio}>Nenhum lote cadastrado.</Text> : null}
       </View>
     </ScrollView>
   );

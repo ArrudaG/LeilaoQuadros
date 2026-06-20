@@ -46,6 +46,7 @@ export default function TelaPerfil() {
     ativarBiometriaNaContaAtual,
     desativarBiometriaNoAparelho,
     excluirContaAtual,
+    sair,
   } = useAutenticacao();
   const [nome, setNome] = useState('');
   const [sobrenome, setSobrenome] = useState('');
@@ -221,6 +222,24 @@ export default function TelaPerfil() {
     ]);
   }
 
+  function sairDaConta() {
+    Alert.alert('Sair da conta', 'Deseja encerrar sua sessão neste aparelho?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Sair',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await sair();
+            router.replace('/login');
+          } catch {
+            Alert.alert('Erro', 'Não foi possível sair da conta.');
+          }
+        },
+      },
+    ]);
+  }
+
   return (
     <ScrollView style={styles.tela} contentContainerStyle={styles.telaConteudo}>
       <EntradaAnimada style={styles.cartaoAvatar}>
@@ -301,6 +320,16 @@ export default function TelaPerfil() {
             </View>
           </Pressable>
         )}
+
+        <Pressable style={styles.acaoSeguranca} onPress={sairDaConta}>
+          <View style={[styles.acaoIcone, styles.acaoIconeSaida]}>
+            <IconeSimbolo name="logout" size={21} color="#fff" />
+          </View>
+          <View style={styles.acaoTextoBox}>
+            <Text style={styles.acaoTitulo}>Sair da conta</Text>
+            <Text style={styles.acaoDescricao}>Encerrar a sessão neste aparelho.</Text>
+          </View>
+        </Pressable>
 
         <Pressable style={styles.acaoSeguranca} onPress={excluirConta}>
           <View style={[styles.acaoIcone, styles.acaoIconeVermelho]}>
@@ -551,6 +580,9 @@ const styles = StyleSheet.create({
   },
   acaoIconeVermelho: {
     backgroundColor: '#b91c1c',
+  },
+  acaoIconeSaida: {
+    backgroundColor: '#475569',
   },
   acaoTextoBox: {
     flex: 1,

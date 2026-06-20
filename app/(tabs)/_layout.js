@@ -72,14 +72,14 @@ export default function LayoutAbas() {
       <Tabs.Screen
         name="leiloes"
         options={{
-          title: 'Leilões',
+          title: 'Lotes',
           tabBarIcon: ({ color }) => <IconeSimbolo size={24} name="list.bullet.rectangle.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="conquistas"
         options={{
-          title: 'Conquistas',
+          title: 'Arrematados',
           tabBarIcon: ({ color }) => <IconeSimbolo size={24} name="trophy.fill" color={color} />,
         }}
       />

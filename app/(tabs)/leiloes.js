@@ -15,6 +15,8 @@ import {
 
 import { IconeSimbolo } from '@/components/ui/icone-simbolo';
 import { CartaoLeilao, EstadoVazio, HeroLeilao, PillStatus } from '@/components/ui/leilao-design';
+import { useAtualizacaoAoExpirarLeiloes, useRelogioLeilao } from '../../src/auction/hooks/use-relogio-leilao';
+import { calcularTempoLeilao } from '../../src/auction/tempo-leilao';
 import { useAutenticacao } from '../../src/auth/context/contexto-autenticacao';
 import { API_BASE_URL } from '../../src/auth/services/servico-api';
 import { buscarDetalheLeilao, enviarLance, listarLeiloes } from '../../src/auth/services/servico-leilao';
@@ -76,27 +78,9 @@ function situacaoUsuario(leilao, usuarioId) {
   return 'Você não está ganhando';
 }
 
-function tempoRestante(endsAt) {
-  const fim = new Date(endsAt).getTime();
-  const diff = fim - Date.now();
-
-  if (!Number.isFinite(fim) || diff <= 0) {
-    return 'Encerrando';
-  }
-
-  const minutos = Math.floor(diff / 60000);
-  const segundos = Math.floor((diff % 60000) / 1000);
-
-  if (minutos >= 60) {
-    const horas = Math.floor(minutos / 60);
-    return `${horas}h ${minutos % 60}m`;
-  }
-
-  return `${minutos}m ${String(segundos).padStart(2, '0')}s`;
-}
-
 export default function TelaLeiloes() {
   const { token, usuario } = useAutenticacao();
+  const agoraMs = useRelogioLeilao();
   const [statusAtivo, setStatusAtivo] = useState('active');
   const [leiloes, setLeiloes] = useState([]);
   const [carregando, setCarregando] = useState(false);
@@ -124,6 +108,8 @@ export default function TelaLeiloes() {
   useEffect(() => {
     carregarLeiloes(statusAtivo);
   }, [carregarLeiloes, statusAtivo]);
+
+  useAtualizacaoAoExpirarLeiloes(leiloes, agoraMs, () => carregarLeiloes(statusAtivo));
 
   async function abrirStory(auctionId) {
     if (!token) {
@@ -162,6 +148,7 @@ export default function TelaLeiloes() {
     const liderId = detalheLeilao?.auction?.highestBidderUserId;
     return Boolean(liderId) && String(liderId) === String(usuario?.id || '');
   }, [detalheLeilao?.auction?.highestBidderUserId, usuario?.id]);
+  const tempoDetalhe = calcularTempoLeilao(detalheLeilao?.auction?.endsAt, agoraMs);
 
   const podeLancar = useMemo(() => {
     if (!detalheLeilao?.auction) {
@@ -169,11 +156,10 @@ export default function TelaLeiloes() {
     }
 
     const leilao = detalheLeilao.auction;
-    const agora = Date.now();
     const inicio = new Date(leilao.startsAt).getTime();
     const fim = new Date(leilao.endsAt).getTime();
-    return leilao.status === 'active' && agora >= inicio && agora < fim && !usuarioAtualLidera;
-  }, [detalheLeilao, usuarioAtualLidera]);
+    return leilao.status === 'active' && agoraMs >= inicio && agoraMs < fim && !usuarioAtualLidera;
+  }, [agoraMs, detalheLeilao, usuarioAtualLidera]);
 
   async function confirmarLance() {
     if (!token || !detalheLeilao?.auction) {
@@ -216,6 +202,7 @@ export default function TelaLeiloes() {
     const imagem = montarUrlImagem(item.mediaUrl);
     const situacao = situacaoUsuario(item, usuario?.id);
     const perdendo = situacao.includes('nao');
+    const tempo = calcularTempoLeilao(item.endsAt, agoraMs);
 
     return (
       <CartaoLeilao style={styles.card} delay={40}>
@@ -229,11 +216,13 @@ export default function TelaLeiloes() {
           </View>
 
           <Text style={styles.valorAtual}>R$ {formatarMoeda(item.currentBid)}</Text>
-          <Text style={styles.cardMeta}>Vencedor momentâneo: {nomeLider(item)}</Text>
+          <Text style={styles.cardMeta}>Líder atual: {nomeLider(item)}</Text>
 
           <View style={styles.cardRodape}>
             <Text style={[styles.situacao, perdendo ? styles.situacaoPerdendo : styles.situacaoOk]}>{situacao}</Text>
-            <Text style={styles.tempo}>{item.status === 'active' ? tempoRestante(item.endsAt) : formatarData(item.endsAt)}</Text>
+            <Text style={[styles.tempo, tempo.encerrado ? styles.tempoEncerrado : null]}>
+              {item.status === 'active' ? tempo.texto : formatarData(item.endsAt)}
+            </Text>
           </View>
         </View>
         </Pressable>
@@ -246,8 +235,8 @@ export default function TelaLeiloes() {
       <View style={styles.topo}>
         <HeroLeilao
           eyebrow="Sala de disputa"
-          title="Leilões"
-          subtitle="Filtre por status, abra o item e acompanhe os lances recentes antes de ofertar."
+          title="Lotes em leilão"
+          subtitle="Escolha um lote, acompanhe os lances recentes e faça sua oferta."
           icon="gavel.fill"
           accent="#2457d6"
         />
@@ -299,7 +288,7 @@ export default function TelaLeiloes() {
 
                 <View style={styles.painelLider}>
                   <View>
-                    <Text style={styles.painelLabel}>Vencedor momentâneo</Text>
+                    <Text style={styles.painelLabel}>Líder atual</Text>
                     <Text style={styles.painelNome}>{nomeLider(detalheLeilao?.auction)}</Text>
                   </View>
                   <Text style={styles.painelValor}>R$ {formatarMoeda(detalheLeilao?.auction?.currentBid)}</Text>
@@ -310,6 +299,9 @@ export default function TelaLeiloes() {
                   <Text style={styles.storyInfo}>Mínimo: R$ {formatarMoeda(lanceMinimo)}</Text>
                   <Text style={styles.storyInfo}>Início: {formatarData(detalheLeilao?.auction?.startsAt)}</Text>
                   <Text style={styles.storyInfo}>Fim: {formatarData(detalheLeilao?.auction?.endsAt)}</Text>
+                  <Text style={[styles.storyInfo, tempoDetalhe.encerrado ? styles.storyInfoEncerrado : null]}>
+                    Tempo restante: {tempoDetalhe.texto}
+                  </Text>
                 </View>
 
                 <View style={styles.lancesRecentes}>
@@ -490,6 +482,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
   },
+  tempoEncerrado: {
+    color: '#b42318',
+  },
   vazio: {
     color: '#64748b',
     textAlign: 'center',
@@ -561,6 +556,10 @@ const styles = StyleSheet.create({
   storyInfo: {
     color: '#cbd5e1',
     fontSize: 12,
+  },
+  storyInfoEncerrado: {
+    color: '#fca5a5',
+    fontWeight: '900',
   },
   lancesRecentes: {
     backgroundColor: '#121a2f',

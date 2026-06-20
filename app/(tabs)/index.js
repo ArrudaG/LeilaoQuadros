@@ -13,6 +13,8 @@ import {
   PillStatus,
   TelaComFundo,
 } from '@/components/ui/leilao-design';
+import { useAtualizacaoAoExpirarLeiloes, useRelogioLeilao } from '../../src/auction/hooks/use-relogio-leilao';
+import { calcularTempoLeilao } from '../../src/auction/tempo-leilao';
 import { useAutenticacao } from '../../src/auth/context/contexto-autenticacao';
 import { API_BASE_URL } from '../../src/auth/services/servico-api';
 import { listarLeiloes } from '../../src/auth/services/servico-leilao';
@@ -51,6 +53,7 @@ function textoSituacao(leilao, usuarioId) {
 
 export default function TelaInicio() {
   const { usuario, token, sair } = useAutenticacao();
+  const agoraMs = useRelogioLeilao();
   const [leiloesAtivos, setLeiloesAtivos] = useState([]);
   const [carregando, setCarregando] = useState(false);
 
@@ -73,6 +76,8 @@ export default function TelaInicio() {
   useEffect(() => {
     carregarPainel();
   }, [carregarPainel]);
+
+  useAtualizacaoAoExpirarLeiloes(leiloesAtivos, agoraMs, carregarPainel);
 
   const metricas = useMemo(() => {
     const liderando = leiloesAtivos.filter((item) => String(item.highestBidderUserId || '') === String(usuario?.id || '')).length;
@@ -102,7 +107,7 @@ export default function TelaInicio() {
       <HeroLeilao
         eyebrow={`Olá, ${usuario?.firstName || 'participante'}`}
         title="Sala de leilões"
-        subtitle="Veja vários itens acontecendo agora, acompanhe o líder momentâneo e entre na disputa certa."
+        subtitle="Acompanhe os lotes ativos, veja quem está liderando e entre na disputa."
         icon="gavel.fill"
         accent={LeilaoCores.ouro}
         right={
@@ -146,6 +151,7 @@ export default function TelaInicio() {
           const situacao = textoSituacao(item, usuario?.id);
           const perdendo = situacao.includes('nao');
           const liderando = situacao.includes('liderando');
+          const tempo = calcularTempoLeilao(item.endsAt, agoraMs);
 
           return (
             <Pressable key={item.id} onPress={() => router.push('/(tabs)/leiloes')}>
@@ -166,12 +172,18 @@ export default function TelaInicio() {
 
                   <View style={styles.liderLinha}>
                     <IconeSimbolo name="leaderboard.fill" color="#2457d6" size={17} />
-                    <Text style={styles.cardMeta} numberOfLines={1}>Vencedor momentâneo: {nomeLider(item)}</Text>
+                    <Text style={styles.cardMeta} numberOfLines={1}>Líder atual: {nomeLider(item)}</Text>
                   </View>
 
-                  <PillStatus tone={perdendo ? 'amber' : liderando ? 'green' : 'blue'} icon={liderando ? 'check.circle.fill' : 'timer'}>
-                    {situacao}
-                  </PillStatus>
+                  <View style={styles.cardStatusLinha}>
+                    <PillStatus tone={perdendo ? 'amber' : liderando ? 'green' : 'blue'} icon={liderando ? 'check.circle.fill' : 'timer'}>
+                      {situacao}
+                    </PillStatus>
+                    <View style={[styles.tempoPill, tempo.encerrado ? styles.tempoPillEncerrado : null]}>
+                      <IconeSimbolo name="timer" color={tempo.encerrado ? '#b42318' : '#475467'} size={15} />
+                      <Text style={[styles.tempoTexto, tempo.encerrado ? styles.tempoTextoEncerrado : null]}>{tempo.texto}</Text>
+                    </View>
+                  </View>
                 </View>
               </CartaoLeilao>
             </Pressable>
@@ -297,5 +309,32 @@ const styles = StyleSheet.create({
     color: '#475467',
     fontSize: 12,
     fontWeight: '800',
+  },
+  cardStatusLinha: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  tempoPill: {
+    minHeight: 28,
+    paddingHorizontal: 9,
+    borderRadius: 999,
+    backgroundColor: '#f2f4f7',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  tempoPillEncerrado: {
+    backgroundColor: '#fee4e2',
+  },
+  tempoTexto: {
+    color: '#475467',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  tempoTextoEncerrado: {
+    color: '#b42318',
   },
 });

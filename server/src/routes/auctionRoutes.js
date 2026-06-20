@@ -251,7 +251,7 @@ auctionRoutes.post('/:auctionId/payment', async (req, res) => {
       },
     });
   } catch {
-    return res.status(500).json({ message: 'Erro ao registrar pagamento simulado.' });
+    return res.status(500).json({ message: 'Erro ao registrar pagamento.' });
   }
 });
 
@@ -293,7 +293,7 @@ auctionRoutes.post('/:auctionId/redeem', async (req, res) => {
     }
 
     if (winner.rows[0].payment_status !== 'paid') {
-      return res.status(400).json({ message: 'Confirme o pagamento simulado antes de informar o endereÃ§o.' });
+      return res.status(400).json({ message: 'Confirme o pagamento antes de informar o endereÃ§o.' });
     }
 
     const created = await pool.query(

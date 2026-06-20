@@ -72,7 +72,7 @@ export default function LayoutAdmin() {
       <Tabs.Screen
         name="leiloes"
         options={{
-          title: 'Leilões',
+          title: 'Lotes',
           tabBarIcon: ({ color }) => <IconeSimbolo size={24} name="gavel.fill" color={color} />,
         }}
       />
@@ -93,7 +93,7 @@ export default function LayoutAdmin() {
       <Tabs.Screen
         name="resgates"
         options={{
-          title: 'Resgates',
+          title: 'Entregas',
           tabBarIcon: ({ color }) => <IconeSimbolo size={24} name="shippingbox.fill" color={color} />,
         }}
       />

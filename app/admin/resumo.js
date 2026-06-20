@@ -70,13 +70,13 @@ export default function AdminResumoScreen() {
         </View>
         <Text style={styles.eyebrow}>Painel administrativo</Text>
         <Text style={styles.titulo}>Admin Leilões</Text>
-        <Text style={styles.subtitulo}>Controle leilões ativos, vencedores e resgates em poucos toques.</Text>
+        <Text style={styles.subtitulo}>Controle lotes ativos, resultados e entregas em poucos toques.</Text>
       </View>
 
       <View style={styles.kpiRow}>
         <View style={styles.kpiCard}>
           <IconeSimbolo name="gavel.fill" color="#2563eb" size={23} />
-          <Text style={styles.kpiLabel}>Leilões</Text>
+          <Text style={styles.kpiLabel}>Lotes</Text>
           <Text style={styles.kpiValue}>{metricas.leiloes}</Text>
         </View>
         <View style={styles.kpiCard}>
@@ -87,7 +87,7 @@ export default function AdminResumoScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitulo}>Resgates</Text>
+        <Text style={styles.cardTitulo}>Entregas</Text>
         <View style={styles.badgesRow}>
           <View style={styles.badgeBox}>
             <Text style={styles.badgeNumero}>{metricas.solicitados}</Text>
@@ -109,11 +109,11 @@ export default function AdminResumoScreen() {
         <View style={styles.atalhosRow}>
           <Pressable style={styles.atalho} onPress={() => router.push('/admin/leiloes')}>
             <IconeSimbolo name="gavel.fill" color="#fff" size={19} />
-            <Text style={styles.atalhoTexto}>Gerenciar leilões</Text>
+            <Text style={styles.atalhoTexto}>Gerenciar lotes</Text>
           </Pressable>
           <Pressable style={styles.atalho} onPress={() => router.push('/admin/resgates')}>
             <IconeSimbolo name="shippingbox.fill" color="#fff" size={19} />
-            <Text style={styles.atalhoTexto}>Fluxo de resgates</Text>
+            <Text style={styles.atalhoTexto}>Fluxo de entregas</Text>
           </Pressable>
         </View>
       </View>

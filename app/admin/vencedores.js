@@ -62,7 +62,7 @@ export default function AdminVencedoresScreen() {
       <HeroLeilao
         eyebrow="Admin"
         title="Vencedores"
-        subtitle="Resumo dos leilões encerrados, com vencedor, lance final e pagamento."
+        subtitle="Resumo dos lotes encerrados, com vencedor, lance final e pagamento."
         icon="trophy.fill"
         accent="#d99b20"
       />
@@ -103,7 +103,7 @@ export default function AdminVencedoresScreen() {
         })}
 
         {!vencedores.length ? (
-          <EstadoVazio icon="trophy.fill" title="Nenhum vencedor ainda" text="Quando um leilão for encerrado, o resultado aparece aqui." />
+          <EstadoVazio icon="trophy.fill" title="Nenhum vencedor ainda" text="Quando um lote for encerrado, o resultado aparecerá aqui." />
         ) : null}
       </View>
     </ScrollView>
