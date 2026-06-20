@@ -1,0 +1,20 @@
+appId: host.exp.exponent
+---
+- launchApp:
+    clearState: true
+- tapOn: "Enter URL manually"
+- tapOn: "exp://"
+- inputText: "exp://tcvey0y-anonymous-8081.exp.direct"
+- tapOn: "Connect"
+- extendedWaitUntil:
+    visible: "This is the developer menu. It gives you access to useful tools in Expo Go."
+    timeout: 10000
+- tapOn:
+    point: 4%,47%
+- tapOn: "Somente números"
+- inputText: "12345678910"
+- hideKeyboard
+- tapOn: "Sua senha"
+- inputText: "123456"
+- hideKeyboard
+- tapOn: "Entrar agora"
