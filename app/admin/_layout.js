@@ -1,23 +1,19 @@
 import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AbaHaptica } from '@/components/aba-haptica';
+import { SplashLogo } from '@/components/splash-logo';
 import { IconeSimbolo } from '@/components/ui/icone-simbolo';
-import { Cores } from '@/constants/tema';
-import { usarEsquemaCor } from '@/hooks/esquema-cor';
 import { useAutenticacao } from '@/src/auth/context/contexto-autenticacao';
 
 export default function LayoutAdmin() {
-  const esquemaCor = usarEsquemaCor();
   const { usuario, ehAdmin, carregando } = useAutenticacao();
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, 8);
 
   if (carregando) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return <SplashLogo mensagem="Abrindo painel administrativo..." />;
   }
 
   if (!usuario) {
@@ -33,7 +29,37 @@ export default function LayoutAdmin() {
       screenOptions={{
         headerShown: false,
         tabBarButton: AbaHaptica,
-        tabBarActiveTintColor: Cores[esquemaCor ?? 'light'].tint,
+        tabBarActiveTintColor: '#2457d6',
+        tabBarInactiveTintColor: '#667085',
+        tabBarActiveBackgroundColor: '#e8f0ff',
+        tabBarShowLabel: true,
+        sceneStyle: {
+          backgroundColor: '#f4f7fb',
+          paddingTop: insets.top,
+        },
+        tabBarStyle: {
+          height: 58 + bottomInset,
+          paddingTop: 6,
+          paddingBottom: bottomInset,
+          backgroundColor: '#ffffff',
+          borderTopWidth: 1,
+          borderColor: '#d8dee9',
+          shadowColor: '#101828',
+          shadowOpacity: 0.12,
+          shadowRadius: 14,
+          shadowOffset: { width: 0, height: 5 },
+          elevation: 8,
+        },
+        tabBarItemStyle: {
+          borderRadius: 8,
+          marginVertical: 7,
+          marginHorizontal: 2,
+          paddingVertical: 3,
+        },
+        tabBarLabelStyle: {
+          fontSize: 9,
+          fontWeight: '800',
+        },
       }}
     >
       <Tabs.Screen
@@ -46,7 +72,7 @@ export default function LayoutAdmin() {
       <Tabs.Screen
         name="leiloes"
         options={{
-          title: 'Leiloes',
+          title: 'Lotes',
           tabBarIcon: ({ color }) => <IconeSimbolo size={24} name="gavel.fill" color={color} />,
         }}
       />
@@ -67,7 +93,7 @@ export default function LayoutAdmin() {
       <Tabs.Screen
         name="resgates"
         options={{
-          title: 'Resgates',
+          title: 'Entregas',
           tabBarIcon: ({ color }) => <IconeSimbolo size={24} name="shippingbox.fill" color={color} />,
         }}
       />

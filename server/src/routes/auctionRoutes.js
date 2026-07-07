@@ -32,6 +32,10 @@ const paymentSchema = z.object({
 });
 
 function mapAuction(row) {
+  const highestBidderFirstName = row.highest_bidder_first_name || row.highestBidderFirstName || null;
+  const highestBidderLastName = row.highest_bidder_last_name || row.highestBidderLastName || null;
+  const highestBidderName = [highestBidderFirstName, highestBidderLastName].filter(Boolean).join(' ');
+
   return {
     id: row.id,
     title: row.title,
@@ -46,6 +50,9 @@ function mapAuction(row) {
     winnerUserId: row.winner_user_id,
     winnerBid: row.winner_bid != null ? Number(row.winner_bid) : null,
     highestBidderUserId: row.highest_bidder_user_id,
+    highestBidderFirstName,
+    highestBidderLastName,
+    highestBidderName: highestBidderName || null,
     participantsCount: Number(row.participants_count || 0),
     bidsCount: Number(row.bids_count || 0),
   };
@@ -244,7 +251,7 @@ auctionRoutes.post('/:auctionId/payment', async (req, res) => {
       },
     });
   } catch {
-    return res.status(500).json({ message: 'Erro ao registrar pagamento simulado.' });
+    return res.status(500).json({ message: 'Erro ao registrar pagamento.' });
   }
 });
 
@@ -286,7 +293,7 @@ auctionRoutes.post('/:auctionId/redeem', async (req, res) => {
     }
 
     if (winner.rows[0].payment_status !== 'paid') {
-      return res.status(400).json({ message: 'Confirme o pagamento simulado antes de informar o endereÃ§o.' });
+      return res.status(400).json({ message: 'Confirme o pagamento antes de informar o endereÃ§o.' });
     }
 
     const created = await pool.query(
@@ -420,9 +427,12 @@ auctionRoutes.get('/', async (req, res) => {
     const found = await pool.query(
       `SELECT
          a.*,
+         hb.first_name AS highest_bidder_first_name,
+         hb.last_name AS highest_bidder_last_name,
          COALESCE(m.participants_count, 0) AS participants_count,
          COALESCE(m.bids_count, 0) AS bids_count
        FROM leilao_auctions a
+       LEFT JOIN leilao_users hb ON hb.id = a.highest_bidder_user_id
        LEFT JOIN (
          SELECT
            auction_id,
@@ -447,9 +457,12 @@ auctionRoutes.get('/:auctionId', async (req, res) => {
     const found = await pool.query(
       `SELECT
          a.*,
+         hb.first_name AS highest_bidder_first_name,
+         hb.last_name AS highest_bidder_last_name,
          COALESCE(m.participants_count, 0) AS participants_count,
          COALESCE(m.bids_count, 0) AS bids_count
        FROM leilao_auctions a
+       LEFT JOIN leilao_users hb ON hb.id = a.highest_bidder_user_id
        LEFT JOIN (
          SELECT
            auction_id,
@@ -529,7 +542,7 @@ auctionRoutes.post('/:auctionId/bids', async (req, res) => {
     }
 
     const auction = found.rows[0];
-    const bidder = await client.query('SELECT id FROM leilao_users WHERE id = $1', [req.user.sub]);
+    const bidder = await client.query('SELECT id, first_name, last_name FROM leilao_users WHERE id = $1', [req.user.sub]);
 
     if (bidder.rowCount === 0) {
       await client.query('ROLLBACK');
@@ -660,6 +673,8 @@ auctionRoutes.post('/:auctionId/bids', async (req, res) => {
 
     const row = {
       ...updated.rows[0],
+      highest_bidder_first_name: bidder.rows[0].first_name,
+      highest_bidder_last_name: bidder.rows[0].last_name,
       bids_count: metrics.rows[0].bids_count,
       participants_count: metrics.rows[0].participants_count,
     };

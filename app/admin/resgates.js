@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { IconeSimbolo } from '@/components/ui/icone-simbolo';
+import { CartaoLeilao, EstadoVazio, HeroLeilao, PillStatus } from '@/components/ui/leilao-design';
 import { useAutenticacao } from '../../src/auth/context/contexto-autenticacao';
 import { atualizarStatusResgateAdmin, listarResgatesAdmin } from '../../src/auth/services/servico-admin';
 
 function traduzirStatusResgate(status) {
   const mapa = {
-    pending_address: 'Aguardando endereco',
+    pending_address: 'Aguardando endereço',
     requested: 'Solicitado',
     confirmed: 'A caminho',
     delivered: 'Entregue',
@@ -17,12 +19,24 @@ function traduzirStatusResgate(status) {
 
 function traduzirPagamento(method) {
   const mapa = {
-    pix_simulado: 'PIX simulado',
-    cartao_simulado: 'Cartao simulado',
-    deposito_simulado: 'Deposito simulado',
+    pix_simulado: 'PIX',
+    cartao_simulado: 'Cartão',
+    deposito_simulado: 'Depósito',
   };
 
-  return mapa[String(method || '').toLowerCase()] || 'Nao informado';
+  return mapa[String(method || '').toLowerCase()] || 'Não informado';
+}
+
+function toneStatus(status) {
+  if (status === 'delivered') {
+    return 'green';
+  }
+
+  if (status === 'requested') {
+    return 'amber';
+  }
+
+  return 'blue';
 }
 
 export default function AdminResgatesScreen() {
@@ -40,7 +54,7 @@ export default function AdminResgatesScreen() {
       const resultado = await listarResgatesAdmin(token);
       setResgates(resultado.redemptions || []);
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Falha ao carregar resgates.');
+      Alert.alert('Erro', error?.message || 'Falha ao carregar entregas.');
     } finally {
       setCarregando(false);
     }
@@ -60,7 +74,7 @@ export default function AdminResgatesScreen() {
       await atualizarStatusResgateAdmin(token, redemptionId, 'confirmed');
       await carregar();
     } catch (error) {
-      Alert.alert('Erro', error?.message || 'Não foi possível atualizar status do resgate.');
+      Alert.alert('Erro', error?.message || 'Não foi possível atualizar o status da entrega.');
     } finally {
       setCarregando(false);
     }
@@ -71,28 +85,53 @@ export default function AdminResgatesScreen() {
       style={styles.tela}
       contentContainerStyle={styles.conteudo}
       refreshControl={<RefreshControl refreshing={carregando} onRefresh={carregar} />}
+      showsVerticalScrollIndicator={false}
     >
-      <View style={styles.card}>
-        <Text style={styles.titulo}>Solicitações de resgate</Text>
-        {resgates.map((item) => (
-          <View key={item.id} style={styles.itemLinha}>
-            <Text style={styles.itemTitulo}>{item.auctionTitle}</Text>
-            <Text style={styles.itemInfo}>Usuario: {item.userFirstName} {item.userLastName}</Text>
-            <Text style={styles.itemInfo}>Status: {traduzirStatusResgate(item.status)}</Text>
-            <Text style={styles.itemInfo}>Pagamento: {traduzirPagamento(item.paymentMethod)}</Text>
-            <Text style={styles.itemInfo}>Status pagamento: {item.paymentStatus === 'paid' ? 'Pago' : 'Pendente'}</Text>
-            <Text style={styles.itemInfo}>Endereco: {item.addressLine}, {item.addressNumber} - {item.city}/{item.state}</Text>
+      <HeroLeilao
+        eyebrow="Admin"
+        title="Entregas"
+        subtitle="Acompanhe o pagamento, o endereço e o envio dos lotes arrematados."
+        icon="shippingbox.fill"
+        accent="#0f9f6e"
+      />
+
+      <View style={styles.lista}>
+        {resgates.map((item, index) => (
+          <CartaoLeilao key={item.id} style={styles.itemLinha} delay={index * 40}>
+            <View style={styles.itemTopo}>
+              <View style={styles.iconeEntrega}>
+                <IconeSimbolo name="shippingbox.fill" color="#2457d6" size={24} />
+              </View>
+              <View style={styles.itemTituloBox}>
+                <Text style={styles.itemTitulo}>{item.auctionTitle}</Text>
+                <Text style={styles.itemInfo}>{item.userFirstName} {item.userLastName}</Text>
+              </View>
+              <PillStatus tone={toneStatus(item.status)} icon="shippingbox.fill">{traduzirStatusResgate(item.status)}</PillStatus>
+            </View>
+
+            <View style={styles.infoBox}>
+              <View style={styles.infoLinha}>
+                <IconeSimbolo name="payments.fill" color="#0f9f6e" size={18} />
+                <Text style={styles.itemInfo}>Pagamento: {traduzirPagamento(item.paymentMethod)} - {item.paymentStatus === 'paid' ? 'Pago' : 'Pendente'}</Text>
+              </View>
+              <View style={styles.infoLinha}>
+                <IconeSimbolo name="location.fill" color="#d99b20" size={18} />
+                <Text style={styles.itemInfo}>{item.addressLine}, {item.addressNumber} - {item.city}/{item.state}</Text>
+              </View>
+            </View>
 
             {item.status === 'requested' ? (
-              <View style={styles.linhaAcoes}>
-                <Pressable style={styles.acaoParticipantes} onPress={() => liberarResgate(item.id)}>
-                  <Text style={styles.textoAcao}>Liberar resgate</Text>
-                </Pressable>
-              </View>
+              <Pressable style={styles.acaoLiberar} onPress={() => liberarResgate(item.id)}>
+                <IconeSimbolo name="check.circle.fill" color="#fff" size={18} />
+                <Text style={styles.textoAcao}>Liberar entrega</Text>
+              </Pressable>
             ) : null}
-          </View>
+          </CartaoLeilao>
         ))}
-        {!resgates.length ? <Text style={styles.vazio}>Sem solicitações de resgate no momento.</Text> : null}
+
+        {!resgates.length ? (
+          <EstadoVazio icon="shippingbox.fill" title="Sem entregas" text="Quando um arrematante informar o endereço, a solicitação aparecerá aqui." />
+        ) : null}
       </View>
     </ScrollView>
   );
@@ -101,60 +140,73 @@ export default function AdminResgatesScreen() {
 const styles = StyleSheet.create({
   tela: {
     flex: 1,
-    backgroundColor: '#eef3ff',
+    backgroundColor: '#f4f7fb',
   },
   conteudo: {
-    padding: 14,
-    gap: 12,
-    paddingBottom: 28,
+    padding: 16,
+    paddingTop: 18,
+    gap: 14,
+    paddingBottom: 24,
   },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#dbe4ff',
-    padding: 12,
+  lista: {
     gap: 10,
   },
-  titulo: {
-    color: '#0f172a',
-    fontSize: 18,
-    fontWeight: '700',
-  },
   itemLinha: {
-    borderWidth: 1,
-    borderColor: '#d8e3ff',
-    borderRadius: 12,
-    padding: 10,
-    gap: 5,
-    backgroundColor: '#fbfdff',
+    padding: 13,
+    gap: 12,
+  },
+  itemTopo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  iconeEntrega: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: '#e8f0ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemTituloBox: {
+    flex: 1,
   },
   itemTitulo: {
-    color: '#0f172a',
-    fontWeight: '700',
+    color: '#101828',
+    fontWeight: '900',
+    fontSize: 15,
   },
   itemInfo: {
-    color: '#334155',
-    fontSize: 13,
+    color: '#667085',
+    fontSize: 12,
+    fontWeight: '700',
+    flex: 1,
   },
-  linhaAcoes: {
+  infoBox: {
+    backgroundColor: '#f9fbff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d8dee9',
+    padding: 10,
+    gap: 7,
+  },
+  infoLinha: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  acaoLiberar: {
+    backgroundColor: '#0f9f6e',
+    borderRadius: 8,
+    paddingVertical: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
-    marginTop: 6,
-  },
-  acaoParticipantes: {
-    backgroundColor: '#0f766e',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
   },
   textoAcao: {
     color: '#fff',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  vazio: {
-    color: '#6b7280',
+    fontWeight: '900',
     fontSize: 13,
   },
 });

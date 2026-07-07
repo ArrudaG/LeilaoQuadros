@@ -115,12 +115,16 @@ adminRoutes.get('/auctions', async (req, res) => {
          a.starts_at AS "startsAt",
          a.ends_at AS "endsAt",
          a.status,
+         a.highest_bidder_user_id AS "highestBidderUserId",
+         hb.first_name AS "highestBidderFirstName",
+         hb.last_name AS "highestBidderLastName",
          a.winner_bid AS "winnerBid",
          a.created_at AS "createdAt",
          a.updated_at AS "updatedAt",
          COALESCE(m.bids_count, 0) AS "bidsCount",
          COALESCE(m.participants_count, 0) AS "participantsCount"
        FROM leilao_auctions a
+       LEFT JOIN leilao_users hb ON hb.id = a.highest_bidder_user_id
        LEFT JOIN (
          SELECT
            b.auction_id,
@@ -531,7 +535,7 @@ adminRoutes.patch('/redemptions/:redemptionId/status', async (req, res) => {
     const statusAtual = String(current.rows[0].status || '');
 
     if (status === 'confirmed' && statusAtual !== 'requested') {
-      return res.status(400).json({ message: 'Só é possível liberar resgates solicitados.' });
+      return res.status(400).json({ message: 'Só é possível liberar entregas solicitadas.' });
     }
 
     const updated = await pool.query(
